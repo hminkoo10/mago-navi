@@ -12,7 +12,7 @@
     "preview": "vite preview",
     "lint": "oxlint",
     "test": "vitest run",
-    "icon": "node scripts/build-icon.mjs"
+    "icon": "python scripts/build-icon.py"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.132.1",
