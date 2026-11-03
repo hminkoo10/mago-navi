@@ -1,12 +1,12 @@
 import { schoolFromLoose } from '../src/engine/school'
 import { AiError, aiConfig, chat } from './ai'
 import { type AiProvider, cleanProvider, ProviderError } from './ai-providers'
-import { type Role, type User } from './accounts'
+import type { User } from './accounts'
 import { publicUser } from './account-api'
 import { intParam, json, queryParam } from './http'
 import { HttpError, readJson } from './limits'
 import { SETTING_FIELDS, SettingError } from './settings'
-import { type Call, currentAi, requireAdmin, requireOwner, type Route, type Services } from './services'
+import { type Call, currentAi, requireAdmin, type Route, type Services } from './services'
 
 // 관리 화면 API. 모두 관리자 로그인이 필요하고, 바꾸는 일은 관리 기록에 남긴다.
 
@@ -28,8 +28,6 @@ const LOG_GROUPS: Record<string, string[]> = {
   curriculum: ['curriculum.'],
   ai: ['match', 'ai-key.'],
 }
-
-const ROLE_LABEL: Record<Role, string> = { owner: '대표 관리자', admin: '관리자', user: '일반' }
 
 const KIND_LABEL: Record<AiProvider['kind'], string> = { openai: 'OpenAI 호환', anthropic: 'Claude', google: 'Gemini' }
 
@@ -66,7 +64,7 @@ function aiState(call: Call) {
 
 export function adminRoutes(deps: AdminDeps): Record<string, Route> {
   /**
-   * 다른 사용자를 바꾸기 전 확인. 내 계정은 여기서 못 바꾸고, 대표 관리자는 누구도 못 바꾼다 (OWNER_EMAIL로 정함).
+   * 다른 사용자를 바꾸기 전 확인. 내 계정은 여기서 못 바꾸고, 대표 관리자는 누구도 못 바꾼다 (통합 클라우드 운영자 역할로 정함).
    * 관리자 계정의 정지·삭제는 대표 관리자만
    */
   const targetUser = (call: Call, admin: User, id: unknown, what: string): User => {
@@ -109,21 +107,6 @@ export function adminRoutes(deps: AdminDeps): Record<string, Route> {
         limit: PAGE,
       })
       return json({ users: users.map((u) => ({ ...publicUser(u), disabled: u.disabled, lastLoginAt: u.lastLoginAt, saved: u.saved })), total, page: PAGE })
-    },
-
-    /** 관리자 지정·취소: 대표 관리자만 */
-    'POST /api/admin/users/role': async (call) => {
-      const owner = requireOwner(call)
-      const body = (await readJson(call.req, 1_000)) as { id?: unknown; role?: unknown }
-      if (body.role !== 'admin' && body.role !== 'user') throw new HttpError(400, '권한을 골라 주세요.')
-      const user = targetUser(call, owner, body.id, '바꿀')
-      const { accounts } = call.services
-      if (body.role !== user.role) {
-        accounts.setRole(user.id, body.role)
-        accounts.log(owner, body.role === 'admin' ? 'user.grant' : 'user.revoke', user.email, `${ROLE_LABEL[user.role]} → ${ROLE_LABEL[body.role]}`)
-      }
-      const now = accounts.byId(user.id)!
-      return json({ user: { ...publicUser(now), disabled: now.disabled, lastLoginAt: now.lastLoginAt } })
     },
 
     /** 이용 정지·풀기 (관리자 계정은 대표 관리자만) */

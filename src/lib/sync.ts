@@ -1,10 +1,10 @@
-import { ApiError, auth, myData, type SavedData } from './api'
+import { ApiError, auth, type DesignApi, myData, type SavedData } from './api'
 
 // 계정 저장: 고친 설계를 잠깐 모았다가 올리고, 실패하면 간격을 늘려 가며 다시 올린다.
 // 계정 판이 마지막으로 맞춘 판(rev)과 다르면 서버가 409와 계정 설계를 돌려주고, 그것과 합쳐 다시 올린다.
 // 화면 상태의 모양은 모른다. 합치기·기준 만들기는 store가 넘겨준다.
 
-/** load-error: 계정 설계를 아직 못 받음, error: 못 올려 다시 시도 중, rejected: 서버가 이 내용을 거절 (400·413) */
+/** load-error: 계정 설계를 아직 못 받음, error: 못 올려 다시 시도 중, rejected: 서버가 이 내용을 거절 (400·403·413) */
 export type SyncState = 'off' | 'loading' | 'load-error' | 'saving' | 'saved' | 'error' | 'rejected'
 
 export interface SyncInfo {
@@ -27,6 +27,10 @@ export interface BaseSnap {
 
 export interface SyncHost<S, B extends BaseSnap> {
   owner: number
+  /** 설계를 받고 올리는 곳. 없으면 내 계정 설계 (학원 학생이면 그 학생 설계) */
+  api?: DesignApi
+  /** 받기만 하고 올리지 않음 (지운 학생) */
+  readOnly?: boolean
   /** 지금 화면 상태 */
   read(): S
   /** 계정 것과 합친 결과로 바꾼다 */
@@ -199,7 +203,7 @@ export class AccountSync<S, B extends BaseSnap> {
     this.loading ??= (async () => {
       clearTimeout(this.timer)
       try {
-        const { saved } = await myData.get()
+        const { saved } = await (this.host.api ?? myData).get()
         if (this.stopped) return
         this.accept(saved)
         this.loaded = true
@@ -222,7 +226,7 @@ export class AccountSync<S, B extends BaseSnap> {
   }
 
   private async save(keepalive = false): Promise<void> {
-    if (this.stopped || !this.loaded) return
+    if (this.stopped || !this.loaded || this.host.readOnly) return
     if (this.saving) {
       this.again = true
       return this.saving
@@ -240,7 +244,7 @@ export class AccountSync<S, B extends BaseSnap> {
     this.report({ state: 'saving' })
     this.saving = (async () => {
       try {
-        const r = await myData.put(data, this.base?.rev ?? null, { keepalive })
+        const r = await (this.host.api ?? myData).put(data, this.base?.rev ?? null, { keepalive })
         if (this.stopped) return
         this.setBase(this.host.snapshot(state, r.updatedAt, hash))
         this.failures = 0
@@ -281,7 +285,8 @@ export class AccountSync<S, B extends BaseSnap> {
       this.report({ state: 'error', failures: this.failures })
       return this.retryLater(() => void this.save(), e)
     }
-    if (status === 400 || status === 413) {
+    // 403: 그사이 지운 학생
+    if (status === 400 || status === 403 || status === 413) {
       this.refused = hash
       this.report({ state: 'rejected', message: e instanceof ApiError ? e.message : '' })
       return

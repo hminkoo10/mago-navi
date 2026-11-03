@@ -88,6 +88,11 @@ export class LruCache<V> {
     return hit.value
   }
 
+  /** 기억한 값 버리기 (원본이 바뀌었을 때) */
+  delete(key: string): void {
+    this.map.delete(key)
+  }
+
   set(key: string, value: V, now = Date.now()): void {
     this.map.delete(key)
     this.map.set(key, { value, at: now })

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { Link } from '../components/Link'
 import { useApp } from '../lib/app'
 
-// Google AI Studio에서 Gemini API 키를 만들어 과목내비에 등록하는 방법.
+// Google AI Studio에서 Gemini API 키를 만들어 마고 과목내비에 등록하는 방법.
 // 2026년 10월 Google 안내(ai.google.dev/gemini-api/docs/api-key, Gemini API 추가 약관 2026-03-23 시행) 기준.
 
 const STUDIO = 'https://aistudio.google.com/apikey'
@@ -26,8 +26,8 @@ const STEPS: [string, ReactNode][] = [
   ['프로젝트 고르기', '어느 프로젝트에 만들지 물으면 기본 프로젝트를 고르거나 새 프로젝트를 만들어요. 프로젝트 이름은 아무거나 괜찮아요.'],
   ['키 복사하기', '만들어진 키를 복사해요. 영문과 숫자가 섞인 긴 문자열이에요. 다른 사람에게 보내거나 채팅·게시판에 올리지 마세요.'],
   [
-    '과목내비에 등록하기',
-    "내 계정의 '내 Gemini API 키'에 붙여 넣고 '확인하고 등록'을 눌러요. 과목내비가 짧은 질문 하나로 키가 맞는지 확인한 뒤 암호화해서 저장해요.",
+    '마고 과목내비에 등록하기',
+    "내 계정의 '내 Gemini API 키'에 붙여 넣고 '확인하고 등록'을 눌러요. 마고 과목내비가 짧은 질문 하나로 키가 맞는지 확인한 뒤 암호화해서 저장해요.",
   ],
 ]
 
@@ -51,11 +51,14 @@ export function GeminiKeyPage() {
       <header className="page-head">
         <p className="eyebrow">도움말</p>
         <h1 className="page-title">Gemini API 키 발급 방법</h1>
-        <p className="page-sub">편제표 자동 읽기·파일 읽기·문장으로 찾기를 내 Google AI Studio API 키로 쓰는 방법이에요. 키는 무료로 만들 수 있어요.</p>
+        <p className="page-sub">
+          편제표 자동 읽기·파일 읽기·문장으로 찾기를 내 Google AI Studio API 키로 쓰는 방법이에요. 학원 AI를 쓸 수 없거나 내 계정에서 '내 키'를 골랐을 때
+          써요. 키는 무료로 만들 수 있어요.
+        </p>
       </header>
 
       {!features.userKey && (
-        <p className="callout">지금은 과목내비가 서버의 AI를 써서 키를 등록하지 않아도 돼요. 관리자가 '사용자 키로 AI 쓰기'를 켜면 필요해요.</p>
+        <p className="callout">지금은 마고 과목내비가 서버의 AI를 써서 키를 등록하지 않아도 돼요. 관리자가 '사용자 키로 AI 쓰기'를 켜면 필요해요.</p>
       )}
 
       <section id="before" className="help-section">
@@ -100,9 +103,9 @@ export function GeminiKeyPage() {
         <h2 className="section-title">키 관리</h2>
         <ul className="plain-list">
           <li>키는 비밀번호와 같아요. 키가 새면 다른 사람이 내 무료 한도를 써 버릴 수 있어요.</li>
-          <li>키가 샜다고 생각되면 AI Studio의 API 키 페이지에서 그 키를 지우고 새로 만든 뒤, 과목내비에 새 키를 다시 등록하세요.</li>
-          <li>과목내비에서 키를 지우려면 내 계정의 '내 Gemini API 키'에서 지우기를 누르세요. 탈퇴하면 바로 지워져요.</li>
-          <li>과목내비는 키를 암호화해서 보관하고, 편제표 읽기·파일 읽기·문장으로 찾기를 할 때만 Google로 보내요. 화면에는 끝 4자리만 보여요.</li>
+          <li>키가 샜다고 생각되면 AI Studio의 API 키 페이지에서 그 키를 지우고 새로 만든 뒤, 마고 과목내비에 새 키를 다시 등록하세요.</li>
+          <li>마고 과목내비에서 키를 지우려면 내 계정의 '내 Gemini API 키'에서 지우기를 누르세요.</li>
+          <li>마고 과목내비는 키를 암호화해서 보관하고, 편제표 읽기·파일 읽기·문장으로 찾기를 할 때만 Google로 보내요. 화면에는 끝 4자리만 보여요.</li>
         </ul>
       </section>
 

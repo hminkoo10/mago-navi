@@ -199,7 +199,7 @@ export interface SafeResponse {
 /** 직접 연결 시간 상한. 넘으면 막힌 것으로 봄 (해외 접속 차단은 연결 단계에서 멈춤) */
 const CONNECT_MS = 10_000
 
-const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36 GwamokNavi/1.0'
+const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36 MagoNavi/1.0'
 
 type RawResult = { status: number; headers: http.IncomingHttpHeaders; body: Buffer }
 

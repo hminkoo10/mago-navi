@@ -5,7 +5,7 @@ import { TERMS } from '../data/schema'
 import { SUBJECTS } from '../data/subjects'
 import { checkSchool, emptySchool, matchSubject } from '../engine/school'
 import { ApiError, importCurriculum, type SchoolHit, searchSchools } from '../lib/api'
-import { useApp, useNeedKey } from '../lib/app'
+import { useAiTraining, useApp, useNeedKey } from '../lib/app'
 import { KeyNeeded } from './KeyNeeded'
 import { prepareFiles } from '../lib/files'
 import { TERM_LABEL, thisCohort } from '../lib/format'
@@ -51,6 +51,7 @@ const cleanDept = (x: string) =>
 export function SchoolEditor({ initial, preset, aiEnabled, onClose, onSave }: Props) {
   const { features } = useApp()
   const needKey = useNeedKey()
+  const training = useAiTraining()
   const [name, setName] = useState(initial?.name ?? preset?.name ?? '')
   const [region, setRegion] = useState(initial?.region ?? preset?.region ?? '')
   const [cohort, setCohort] = useState(initial?.cohort ?? preset?.cohort ?? thisCohort())
@@ -375,7 +376,7 @@ export function SchoolEditor({ initial, preset, aiEnabled, onClose, onSave }: Pr
               )}
               <p className="fine">
                 올린 파일과 텍스트는 편제표를 읽을 때만 외부 AI 서비스로 보내고 저장하지 않아요.
-                {features.aiTraining &&
+                {training &&
                   ' 지금 쓰는 Google Gemini 무료 등급은 보낸 내용을 Google이 개선에 쓰고 검토자가 읽을 수 있으니, 개인정보가 담긴 파일은 올리지 마세요.'}
               </p>
             </section>

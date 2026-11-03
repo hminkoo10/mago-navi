@@ -10,6 +10,7 @@ import { isPickKey, MAX_PICKS } from '../engine/picks'
 import { type Focus, FOCUS_IDS } from '../engine/focus'
 import { schoolFromLoose } from '../engine/school'
 import type { ToastAction } from './app'
+import type { DesignApi } from './api'
 import { josa } from './format'
 import { decodeShare, encodeShare, type ShareState } from './share'
 import { AccountSync, type BaseSnap, hashText, type SyncInfo, type SyncState } from './sync'
@@ -19,6 +20,7 @@ export type { SyncState } from './sync'
 // 화면 상태. localStorage에 저장하고, 로그인하면 계정에도 올린다. 공유 링크는 주소 # 뒤에 담는다.
 // 설계는 슬롯 단위로, 지금 슬롯의 내용이 prefs다. 기본 학교는 없어 처음엔 학교부터 고른다.
 // 계정과는 마지막으로 맞춘 기준(SYNC_KEY)에 견줘 합친다: 다른 기기에서 지운 것은 지우고, 이 기기에서 새로 만든 것은 남긴다.
+// 학원 사람은 학생마다 설계가 따로라 키 끝에 '@학생 ID'를 붙여 따로 둔다 (scope). 학생을 바꾸면 App이 store를 새로 만든다.
 
 const PREFS_KEY = 'gwamok-navi:v4'
 const OLD_PREFS_KEYS = ['gwamok-navi:v3', 'gwamok-navi:v2']
@@ -30,7 +32,9 @@ const OWNER_KEY = 'gwamok-navi:owner'
 /** 마지막으로 계정과 맞춘 기준: 계정 판(rev), 그때의 슬롯·편제표 해시 */
 const SYNC_KEY = 'gwamok-navi:sync'
 /** 다른 탭이 바꾸면 다시 읽는 키 */
-const STORE_KEYS = new Set([PREFS_KEY, SCHOOLS_KEY, SLOTS_KEY, OWNER_KEY, SYNC_KEY])
+const storeKeys = (scope: string) => new Set([PREFS_KEY, SCHOOLS_KEY, SLOTS_KEY, OWNER_KEY, SYNC_KEY].map((k) => k + scope))
+/** 학생별 키 (로그아웃할 때 모두 지움) */
+const SCOPED_KEY = /^gwamok-navi:(?:v4|schools|plans|owner|sync)@/
 const SLOT_ID = /^[a-z0-9-]{1,40}$/
 
 /** 목록 길이 상한. 서버 한도 안쪽 (넘으면 서버가 저장을 거절) */
@@ -129,8 +133,8 @@ function read(key: string): unknown {
   }
 }
 
-function readOwner(): number | null {
-  const o = read(OWNER_KEY)
+function readOwner(scope: string): number | null {
+  const o = read(OWNER_KEY + scope)
   return typeof o === 'number' ? o : null
 }
 
@@ -425,8 +429,8 @@ const pairs = (x: unknown): [string, string][] | null =>
     ? (x as [string, string][])
     : null
 
-function readSnap(): Snap | null {
-  const r = read(SYNC_KEY) as Record<string, unknown> | null
+function readSnap(scope: string): Snap | null {
+  const r = read(SYNC_KEY + scope) as Record<string, unknown> | null
   if (!r || typeof r !== 'object' || typeof r.owner !== 'number' || typeof r.hash !== 'string') return null
   const slots = pairs(r.slots)
   const schools = pairs(r.schools)
@@ -601,13 +605,23 @@ function blankState(): LocalState {
   return { prefs, schools: [], slots }
 }
 
-/** localStorage에서 되살린다: 편제표 → 설계(예전 판 키도 봄) → 슬롯 순 */
-function readLocal(): LocalState & { owner: number | null; dropped: string[] } {
-  const schools = restoreSchools(read(SCHOOLS_KEY))
+/** localStorage에서 되살린다: 편제표 → 설계(예전 판 키도 봄, 학생별 키는 빼고) → 슬롯 순 */
+function readLocal(scope: string): LocalState & { owner: number | null; dropped: string[] } {
+  const schools = restoreSchools(read(SCHOOLS_KEY + scope))
   const ids = new Set(schools.map((s) => s.id))
-  const saved = read(PREFS_KEY) ?? OLD_PREFS_KEYS.map(read).find(Boolean) ?? null
-  const { prefs, slots, dropped } = withSlots(restorePrefs(saved, ids), restoreSlots(read(SLOTS_KEY), ids))
-  return { schools, prefs, slots, dropped, owner: readOwner() }
+  const saved = read(PREFS_KEY + scope) ?? (scope ? null : (OLD_PREFS_KEYS.map(read).find(Boolean) ?? null))
+  const { prefs, slots, dropped } = withSlots(restorePrefs(saved, ids), restoreSlots(read(SLOTS_KEY + scope), ids))
+  return { schools, prefs, slots, dropped, owner: readOwner(scope) }
+}
+
+/** 이 기기에 남은 학생별 설계를 모두 지운다 */
+function clearScoped(): void {
+  try {
+    const keys = Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i)).filter((k): k is string => !!k && SCOPED_KEY.test(k))
+    for (const k of keys) localStorage.removeItem(k)
+  } catch {
+    // 저장소를 못 쓰면 그대로 둔다
+  }
 }
 
 const quoteList = (names: string[]) => names.map((n) => `'${n}'`).join(', ')
@@ -658,6 +672,12 @@ export interface StoreOptions {
   userId?: number | null
   /** 로그인 확인을 마쳤는지. 공유 링크는 그 뒤에 연다 (로그인했으면 계정 설계를 합친 뒤) */
   ready?: boolean
+  /** 이 기기 저장소 키 끝에 붙일 말 (학생별 설계면 '@학생 ID'). 처음 값만 쓴다 (바꾸려면 새로 만듦) */
+  scope?: string
+  /** 설계를 받고 올리는 곳. 없으면 내 계정 설계, null이면 계정과 맞추지 않음 (학생을 고르기 전). 처음 값만 쓴다 */
+  api?: DesignApi | null
+  /** 이 기기에도 계정에도 저장하지 않고 보이기만 함 (지운 학생, 학생을 고르기 전). 처음 값만 쓴다 */
+  readOnly?: boolean
 }
 
 export function useAppState(options: StoreOptions = {}) {
@@ -668,10 +688,11 @@ export function useAppState(options: StoreOptions = {}) {
     opts.current = options
   })
   const notice = useCallback((text: string, action?: ToastAction) => opts.current.onNotice?.(text, action), [])
+  const [{ scope, api, readOnly }] = useState(() => ({ scope: options.scope ?? '', api: options.api, readOnly: !!options.readOnly }))
 
   const [initial] = useState(() => {
     holdShare()
-    return readLocal()
+    return readLocal(scope)
   })
   const [schools, setSchools] = useState<School[]>(initial.schools)
   const [prefs, setPrefsRaw] = useState<Prefs>(initial.prefs)
@@ -688,7 +709,7 @@ export function useAppState(options: StoreOptions = {}) {
   if (userId !== lastUser) {
     setLastUser(userId)
     if (userId !== null) {
-      const fresh = readLocal()
+      const fresh = readLocal(scope)
       const next = fresh.owner === userId ? fresh : blankState()
       setOwner(userId)
       setSchools(next.schools)
@@ -725,22 +746,26 @@ export function useAppState(options: StoreOptions = {}) {
 
   // ---- 이 기기 저장소 ----
   const written = useRef(new Map<string, string | null>())
-  const persist = useCallback((key: string, value: unknown) => {
-    const json = value === null ? null : JSON.stringify(value)
-    if (written.current.get(key) === json) return
-    written.current.set(key, json)
-    try {
-      if (json === null) localStorage.removeItem(key)
-      else localStorage.setItem(key, json)
-    } catch {
-      // 저장소를 못 써도 화면은 동작한다
-    }
-  }, [])
+  const persist = useCallback(
+    (key: string, value: unknown) => {
+      if (readOnly) return
+      const json = value === null ? null : JSON.stringify(value)
+      if (written.current.get(key) === json) return
+      written.current.set(key, json)
+      try {
+        if (json === null) localStorage.removeItem(key)
+        else localStorage.setItem(key, json)
+      } catch {
+        // 저장소를 못 써도 화면은 동작한다
+      }
+    },
+    [readOnly],
+  )
   // 주인을 먼저 적는다: 다른 탭이 설계보다 주인 변경을 먼저 보게
-  useEffect(() => persist(OWNER_KEY, owner), [owner, persist])
-  useEffect(() => persist(PREFS_KEY, prefs), [prefs, persist])
-  useEffect(() => persist(SCHOOLS_KEY, schools), [schools, persist])
-  useEffect(() => persist(SLOTS_KEY, slots), [slots, persist])
+  useEffect(() => persist(OWNER_KEY + scope, owner), [owner, persist, scope])
+  useEffect(() => persist(PREFS_KEY + scope, prefs), [prefs, persist, scope])
+  useEffect(() => persist(SCHOOLS_KEY + scope, schools), [schools, persist, scope])
+  useEffect(() => persist(SLOTS_KEY + scope, slots), [slots, persist, scope])
   useEffect(() => {
     // 새 키에 옮겨 적었으면 예전 판 키는 지운다
     try {
@@ -755,16 +780,18 @@ export function useAppState(options: StoreOptions = {}) {
   const syncer = useRef<AccountSync<LocalState, Snap> | null>(null)
   const adopting = useRef(false)
   useEffect(() => {
-    if (userId === null || owner !== userId) return
+    if (userId === null || owner !== userId || api === null) return
     const s = new AccountSync<LocalState, Snap>({
       owner: userId,
+      api,
+      readOnly,
       read: current,
       apply,
       payload: payloadOf,
       snapshot: (state, rev, hash) => snapshotOf(state, userId, rev, hash),
       merge: mergeForSync,
-      loadBase: readSnap,
-      saveBase: (b) => persist(SYNC_KEY, b),
+      loadBase: () => readSnap(scope),
+      saveBase: (b) => persist(SYNC_KEY + scope, b),
       report: setSyncInfo,
       dropped: (names) => notice(droppedText(names)),
       // 다른 탭에서 계정이 바뀌면 새로 고쳐 지금 계정을 다시 확인한다
@@ -776,7 +803,7 @@ export function useAppState(options: StoreOptions = {}) {
       s.stop()
       if (syncer.current === s) syncer.current = null
     }
-  }, [userId, owner, current, apply, persist, notice])
+  }, [userId, owner, current, apply, persist, notice, scope, api, readOnly])
 
   // 바뀐 설계를 계정에도 올린다 (잠깐 모았다가 한 번에)
   useEffect(() => {
@@ -796,25 +823,27 @@ export function useAppState(options: StoreOptions = {}) {
     let timer: ReturnType<typeof setTimeout> | undefined
     const adopt = () => {
       const me = userRef.current
-      const storedOwner = readOwner()
+      const storedOwner = readOwner(scope)
       if (me !== null) {
         if (storedOwner !== me) {
           // 이 탭이 아직 주인을 적기 전: 곧 적으니 넘어간다
-          if (written.current.get(OWNER_KEY) !== JSON.stringify(me)) return
+          if (written.current.get(OWNER_KEY + scope) !== JSON.stringify(me)) return
           // 다른 탭에서 로그아웃·계정 전환: 이 탭 설계가 다른 계정에 올라가지 않게 새로 고친다
           syncer.current?.stop()
           location.reload()
           return
         }
       } else if (!readyRef.current || storedOwner !== null) return
-      syncer.current?.adoptBase(readSnap())
-      const next = readLocal()
+      syncer.current?.adoptBase(readSnap(scope))
+      const next = readLocal(scope)
       if (stateKey(next) === stateKey(current())) return
       adopting.current = true
       apply(next)
     }
+    const keys = storeKeys(scope)
     const onStorage = (e: StorageEvent) => {
-      if (e.key !== null && !STORE_KEYS.has(e.key)) return
+      // 보이기만 하는 설계는 다른 탭 것을 받지 않는다
+      if (readOnly || (e.key !== null && !keys.has(e.key))) return
       // 한 번 고칠 때 여러 키를 쓰므로 다 쓴 뒤에 읽는다
       clearTimeout(timer)
       timer = setTimeout(adopt, 50)
@@ -824,7 +853,7 @@ export function useAppState(options: StoreOptions = {}) {
       clearTimeout(timer)
       window.removeEventListener('storage', onStorage)
     }
-  }, [apply, current])
+  }, [apply, current, scope, readOnly])
 
   const school = useMemo(() => schools.find((s) => s.id === prefs.schoolId) ?? null, [schools, prefs.schoolId])
 
@@ -930,16 +959,17 @@ export function useAppState(options: StoreOptions = {}) {
 
   const removePicks = useCallback((keys: string[]) => setPrefs((p) => ({ ...p, picks: p.picks.filter((k) => !keys.includes(k)) })), [setPrefs])
 
-  /** 로그아웃·탈퇴 때 이 기기 설계를 모두 지운다 (공용 컴퓨터 대비, 계정에는 남는다) */
+  /** 로그아웃 때 이 기기 설계를 모두 지운다 (공용 컴퓨터 대비, 계정에는 남는다). 학생별 설계도 모두 */
   const clearLocal = useCallback(() => {
     syncer.current?.stop()
     syncer.current = null
-    persist(SYNC_KEY, null)
+    persist(SYNC_KEY + scope, null)
+    clearScoped()
     const fresh = blankState()
     apply(fresh)
     setOwner(null)
     setSyncInfo(null)
-  }, [apply, persist])
+  }, [apply, persist, scope])
 
   /**
    * 쓰는 중 세션이 끝났을 때 (만료·정지·다른 기기에서 탈퇴). 계정에 다 올라갔으면 이 기기 설계를 모두 지운다.
@@ -948,14 +978,14 @@ export function useAppState(options: StoreOptions = {}) {
   const sessionLost = useCallback(() => {
     const s = syncer.current
     const state = current()
-    const base = readSnap()
-    const clean = s ? s.isClean() : !!base && base.owner === owner && hashText(JSON.stringify(payloadOf(state))) === base.hash
+    const base = readSnap(scope)
+    const clean = readOnly || (s ? s.isClean() : !!base && base.owner === owner && hashText(JSON.stringify(payloadOf(state))) === base.hash)
     s?.stop()
     syncer.current = null
     setSyncInfo(null)
     if (clean || isBlank(state)) return clearLocal()
     setPrefsRaw((p) => ({ ...p, profile: { ...p.profile, special: [] } }))
-  }, [clearLocal, current, owner])
+  }, [clearLocal, current, owner, scope, readOnly])
 
   /** 계정 저장 바로 다시 시도 */
   const retrySync = useCallback(() => syncer.current?.kick(), [])
@@ -963,9 +993,9 @@ export function useAppState(options: StoreOptions = {}) {
   /** 로그아웃 전에 밀린 계정 저장을 끝낸다. 못 올린 변경이 남으면 false */
   const flushSync = useCallback(async () => {
     const s = syncer.current
-    if (!s) return true
+    if (!s || readOnly) return true
     return (await s.finish()) || isBlank(current())
-  }, [current])
+  }, [current, readOnly])
 
   /** 다른 슬롯으로 바꾼다. 떠나는 슬롯에 지금 설계를 먼저 써 넣는다 */
   const switchSlot = useCallback(
@@ -1120,8 +1150,8 @@ export function useAppState(options: StoreOptions = {}) {
   )
 
   // 이 기기에서 이 계정 설계를 처음 받는 중이면 화면을 잠깐 막는다 (받기 전에 고친 것이 섞이지 않게)
-  const known = useMemo(() => userId !== null && readSnap()?.owner === userId, [userId])
-  const sync: SyncState = userId === null ? 'off' : (info?.state ?? 'loading')
+  const known = useMemo(() => userId !== null && readSnap(scope)?.owner === userId, [userId, scope])
+  const sync: SyncState = userId === null || api === null ? 'off' : (info?.state ?? 'loading')
 
   return {
     prefs,

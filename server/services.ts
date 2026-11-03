@@ -1,9 +1,11 @@
 import admissions2028 from '../src/data/admissions2028.json'
 import adiga2028 from '../src/data/adiga2028.json'
 import { dirname } from 'node:path'
-import { Accounts, AccountError, isAdmin, type User } from './accounts'
+import { Accounts, isAdmin, type User } from './accounts'
 import { type AiConfig, aiConfig } from './ai'
 import { AiProviders, keySecret } from './ai-providers'
+import { MagoStore } from './mago-store'
+import { StudentData } from './student-data'
 import { UserAiKeys } from './user-keys'
 import { Datasets } from './datasets'
 import { HttpError } from './limits'
@@ -41,8 +43,12 @@ export interface Services {
   verifier: PlanVerifier
   /** 관리자가 넣은 AI 연결 */
   ai: AiProviders
-  /** 사용자가 등록한 Gemini API 키 (관리자가 '사용자 키로 AI 쓰기'를 켰을 때) */
+  /** 사용자가 등록한 Gemini API 키 (관리자가 '사용자 키로 AI 쓰기'를 켰을 때, 통합 클라우드에서 '내 키'를 골랐을 때) */
   userKeys: UserAiKeys
+  /** 통합 클라우드 계정 정보와 로그인 세션에 묶인 클라우드 세션 */
+  mago: MagoStore
+  /** 학원 학생별 설계 */
+  students: StudentData
 }
 
 export interface Call {
@@ -144,7 +150,10 @@ export function servicesFor(
       verifier.kick()
     },
   })
-  return { store, accounts: new Accounts(store.db), settings, datasets, watch, updater, importer, verifier, ai, userKeys }
+  // 클라우드 계정 칸은 계정 표를 만든 뒤에 더한다
+  const accounts = new Accounts(store.db)
+  const mago = new MagoStore(store.db, secret)
+  return { store, accounts, settings, datasets, watch, updater, importer, verifier, ai, userKeys, mago, students: new StudentData(store.db) }
 }
 
 /** 지금 쓸 AI: 관리자가 고른 연결, 안 골랐으면 환경변수 설정. 고른 연결의 키를 못 풀면 null (AI를 끈 것과 같음) */
@@ -192,30 +201,4 @@ export function requireAdmin(call: Call): User {
   const user = requireUser(call)
   if (!isAdmin(user)) throw new HttpError(403, '관리자만 쓸 수 있어요.')
   return user
-}
-
-/** 대표 관리자만 (관리자 지정·취소) */
-export function requireOwner(call: Call): User {
-  const user = requireAdmin(call)
-  if (user.role !== 'owner') throw new HttpError(403, '대표 관리자만 할 수 있어요.')
-  return user
-}
-
-/** 계정 오류를 HTTP 오류로 */
-export function accountCall<T>(fn: () => T): T {
-  try {
-    return fn()
-  } catch (e) {
-    if (e instanceof AccountError) throw new HttpError(e.status, e.message)
-    throw e
-  }
-}
-
-/**
- * 서버를 켤 때 대표 관리자를 OWNER_EMAIL(Google 계정 이메일)에 맞춘다.
- * 그 계정이 아직 없으면 처음 Google로 가입할 때 대표 관리자가 된다
- */
-export function prepareAccounts(accounts: Accounts, env: Record<string, string | undefined>): void {
-  accounts.syncOwner(env.OWNER_EMAIL ?? '')
-  if (!env.OWNER_EMAIL?.trim()) console.warn('[auth] OWNER_EMAIL이 없어 대표 관리자가 없어요. 관리 화면을 쓰려면 .env에 적어 주세요.')
 }

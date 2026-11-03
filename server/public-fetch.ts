@@ -11,7 +11,7 @@ import { isPublicIp } from './safe-fetch'
 // - 연결하는 순간의 DNS 결과를 다시 확인 (확인 뒤 DNS를 바꿔 끼워도 소용없게)
 // - 리다이렉트는 직접 따라가며 단계마다 다시 확인
 
-const UA = 'Mozilla/5.0 (compatible; GwamokNavi/1.0; +https://navi.milky.kr)'
+const UA = 'Mozilla/5.0 (compatible; MagoNavi/1.0; +https://magonavi.milky.kr)'
 /** 연결 단계 시간 상한 */
 const CONNECT_MS = 10_000
 

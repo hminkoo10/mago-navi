@@ -36,9 +36,10 @@ import { CookieJar, FetchBlocked } from './safe-fetch'
 import { type InfoContext, type SchoolInfoResult, schoolInfoCandidates, schoolInfoSite } from './schoolinfo'
 import { isAdmin } from './accounts'
 import { ownKeyError, userGeminiConfig } from './user-keys'
-import type { AiConfig } from './ai-types'
-import { googleReady } from './google-auth'
-import { type ApiContext, type Call, currentAi, prepareAccounts, type Route, type Services, servicesFor } from './services'
+import { academyAi, type AiPick } from './mago-ai'
+import { cloudLogout, magoConfig, magoRoutes, magoSessionUser, PC_LOGIN, prepareMago } from './mago-auth'
+import { studentRoutes } from './students-api'
+import { type ApiContext, type Call, currentAi, type Route, type Services, servicesFor } from './services'
 import { Store, type StoredCurriculum } from './store'
 
 export type { ApiContext } from './services'
@@ -127,20 +128,23 @@ const MIN_KNOWN = 8
 const MIN_KNOWN_VOCATIONAL = 4
 const IMAGE_RE = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/
 
-/** 로그인 없이 부르는 주소: 기능 정보, Google 로그인·가입 동의·로그아웃, ADMIN_TOKEN 스크립트용 숨기기 */
+/** 로그인 없이 부르는 주소: 기능 정보, 통합 클라우드 로그인(웹·PC)·로그아웃, ADMIN_TOKEN 스크립트용 숨기기 */
 export const PUBLIC_ROUTES = new Set([
   'GET /api/health',
   'GET /api/auth/me',
-  'GET /api/auth/google',
-  'GET /api/auth/google/callback',
-  'GET /api/auth/pending',
-  'POST /api/auth/complete',
+  'GET /api/auth/mago',
+  'GET /api/auth/mago/callback',
+  PC_LOGIN,
   'POST /api/auth/logout',
   'POST /api/admin/hide',
 ])
 
-/** CSRF 막기: 다른 사이트에서 보낸 브라우저 요청 거부. curl 같은 직접 호출은 요청 제한으로 */
-function sameOrigin(req: Request, url: URL, env: ApiContext['env']): boolean {
+/**
+ * CSRF 막기: 다른 사이트에서 보낸 브라우저 요청 거부. curl 같은 직접 호출은 요청 제한으로.
+ * PC 로그인은 x-mago-pc: 1 머리글이 있을 때만 예외 (그 머리글은 CORS 사전 요청을 거쳐야 붙일 수 있는데 이 서버는 답하지 않음)
+ */
+function sameOrigin(req: Request, url: URL, env: ApiContext['env'], key: string): boolean {
+  if (key === PC_LOGIN && req.headers.get('x-mago-pc') === '1') return true
   if (req.headers.get('sec-fetch-site') === 'cross-site') return false
   const origin = req.headers.get('origin')
   if (!origin) return true
@@ -181,8 +185,8 @@ export function createApi(options: ApiOptions = {}) {
   const prepare = (env: ApiContext['env']) => {
     const s = servicesOf(env)
     ready ??= Promise.resolve()
-      .then(() => prepareAccounts(s.accounts, env))
-      .catch(() => console.warn('[auth] 대표 관리자를 맞추지 못했어요.'))
+      .then(() => prepareMago(s, env))
+      .catch(() => console.warn('[auth] 예전 계정의 로그인을 끊지 못했어요.'))
       .then(() => startWatch(s, env))
     return ready.then(() => s)
   }
@@ -240,12 +244,12 @@ export function createApi(options: ApiOptions = {}) {
   // 하루 사용량: 저장소에 기록, 한국 시간 날짜 기준, 재시작해도 이어 셈
   let usage: DailyUsage | null = null
   const usageOf = (s: Services) => (usage ??= new DailyUsage(s.store.db))
-  /** 서버 AI 하루 한도 1회 차감 (서버 전체 + 1인 몫). 남았으면 null, 막히면 어느 쪽인지 */
-  const takeDaily = (call: Call, what: keyof typeof PER_USER_DAILY, limit: number): 'mine' | 'all' | null => {
+  /** 서버 AI 하루 한도 1회 차감 (서버 전체 + 1인 몫). 남았으면 null, 막히면 어느 쪽인지. 학원 AI는 학원 키라 1인 몫만 셈 */
+  const takeDaily = (call: Call, what: keyof typeof PER_USER_DAILY, limit: number, academy = false): 'mine' | 'all' | null => {
     const u = usageOf(call.services)
     const mine = call.user && !isAdmin(call.user) ? `u:${call.user.id}:${what}` : null
     if (mine && u.used(mine) >= PER_USER_DAILY[what]) return 'mine'
-    if (!u.take(`all:${what}`, limit)) return 'all'
+    if (!academy && !u.take(`all:${what}`, limit)) return 'all'
     if (mine) u.take(mine, Number.MAX_SAFE_INTEGER)
     return null
   }
@@ -267,36 +271,50 @@ export function createApi(options: ApiOptions = {}) {
    * seen: 처리 중 알게 된 대상·입력 요약 (어디서 실패해도 아는 만큼 남게). mergeMinutes는 성공 기록을 모으는 시간
    */
   const recorded = async (call: Call, action: string, run: (seen: Seen) => Promise<{ res: Response; detail: string }>, mergeMinutes?: number) => {
-    const seen: Seen = { target: '', input: '', own: false }
+    const seen: Seen = { target: '', input: '', own: false, academy: false }
+    const via = () => (seen.own ? '내 키' : seen.academy ? '학원 AI' : '')
     try {
       const { res, detail } = await run(seen)
-      note(call, action, seen.target, [seen.input, detail, seen.own ? '내 키' : ''].filter(Boolean).join(' · '), mergeMinutes)
+      note(call, action, seen.target, [seen.input, detail, via()].filter(Boolean).join(' · '), mergeMinutes)
       return res
     } catch (e) {
       const why = e instanceof HttpError || e instanceof AiError ? e.message : '서버 오류'
-      note(call, action, seen.target, [seen.input, `실패: ${why}`, seen.own ? '내 키' : ''].filter(Boolean).join(' · '), 10)
+      note(call, action, seen.target, [seen.input, `실패: ${why}`, via()].filter(Boolean).join(' · '), 10)
       throw e
     }
   }
 
+  // 학원 AI (통합 클라우드 중계)와 '학원 AI / 내 키' 고르기
+  const magoAi = academyAi(fetchImpl)
+
   /**
-   * 사용자 기능(자동 읽기·파일 읽기·문장으로 찾기)용 AI. '사용자 키로 AI 쓰기'가 켜져 있으면 그 사람 Gemini 키, 아니면 서버 AI.
+   * 사용자 기능(자동 읽기·파일 읽기·문장으로 찾기)용 AI. 통합 클라우드에 연결돼 있으면 사람마다 고른 것 (mago-ai.ts).
+   * 아니면 '사용자 키로 AI 쓰기'가 켜져 있을 때 그 사람 Gemini 키, 꺼져 있으면 서버 AI.
    * 키가 없으면 428 (화면이 키 등록 안내). own이면 서버 하루 한도를 세지 않음
    */
-  const aiFor = (call: Call, what: string, seen?: Seen): { cfg: AiConfig | null; own: boolean } => {
+  const aiFor = async (call: Call, what: string, seen?: Seen): Promise<AiPick> => {
+    const mago = await magoAi.pick(call, what)
+    if (mago) {
+      if (seen) {
+        seen.own = mago.own
+        seen.academy = mago.academy !== null
+      }
+      return mago
+    }
     const settings = call.services.settings.get()
-    if (!settings.userAiKey) return { cfg: currentAi(call), own: false }
+    if (!settings.userAiKey) return { cfg: currentAi(call), own: false, academy: null }
     const key = call.user ? call.services.userKeys.key(call.user.id) : null
     if (!key) throw new HttpError(428, `${what}는 내 Gemini API 키로 해요. 내 계정에서 키를 등록해 주세요.`)
     if (seen) seen.own = true
-    return { cfg: userGeminiConfig(key, settings.userAiModel), own: true }
+    return { cfg: userGeminiConfig(key, settings.userAiModel), own: true, academy: null }
   }
-  /** AI 기능을 쓸 수 있는지. 사용자 키 모드면 서버 AI가 없어도 됨 */
-  const aiOn = (call: Call) => call.services.settings.get().userAiKey || currentAi(call) !== null
-  /** 사용자 키 AI 오류는 본인이 할 일을 알려 주는 문구로 */
-  const ownError = (e: unknown, own: boolean) => (own && e instanceof AiError ? ownKeyError(e) : e)
-  /** 기록용 대상·입력 요약, 사용자 키를 썼는지 */
-  type Seen = { target: string; input: string; own: boolean }
+  /** AI 기능을 쓸 수 있는지. 사용자 키 모드·통합 클라우드(학원 AI·내 키)면 서버 AI가 없어도 됨 */
+  const aiOn = (call: Call) => !!magoConfig(call.ctx.env) || call.services.settings.get().userAiKey || currentAi(call) !== null
+  /** 사용자 키·학원 AI 오류는 본인이 할 일을 알려 주는 문구로 */
+  const ownError = (call: Call, e: unknown, ai: AiPick) =>
+    ai.academy !== null ? magoAi.failed(call, e, ai.academy) : ai.own && e instanceof AiError ? ownKeyError(e) : e
+  /** 기록용 대상·입력 요약, 사용자 키·학원 AI를 썼는지 */
+  type Seen = { target: string; input: string; own: boolean; academy: boolean }
 
   /** 기록용 '학교 입학년도 학과' */
   const schoolLabel = (name: string, cohort: number, track: string) => `${name} ${cohort}${track ? ` ${track}` : ''}`
@@ -330,17 +348,18 @@ export function createApi(options: ApiOptions = {}) {
     const key = text.toLowerCase()
     const cached = matchCache.get(key)
     if (cached) return json({ majors: cached })
-    const { cfg, own } = aiFor(call, '문장으로 찾기', seen)
+    const ai = await aiFor(call, '문장으로 찾기', seen)
+    const { cfg, own } = ai
     if (!cfg) throw new HttpError(503, '지금은 문장으로 찾기를 쓸 수 없어요. 키워드로 찾아 주세요.')
     limit('match', call)
-    const over = own ? null : takeDaily(call, 'match', settings.dailyMatchLimit)
+    const over = own ? null : takeDaily(call, 'match', settings.dailyMatchLimit, ai.academy !== null)
     if (over) throw new HttpError(429, dailyMessage(over, '오늘 사용량을 다 썼어요. 키워드로 찾아 주세요.'))
     // 추론 모델은 생각에도 출력 토큰을 써서 넉넉히
     let out: string
     try {
       out = await chat(cfg, { system: MATCH_SYSTEM, user: text, maxTokens: 1200, timeoutMs: 25_000 }, fetchImpl)
     } catch (e) {
-      throw ownError(e, own)
+      throw ownError(call, e, ai)
     }
     const parsed = extractJson(out) as { majors?: unknown }
     const majors: { id: string; why: string }[] = []
@@ -373,7 +392,8 @@ export function createApi(options: ApiOptions = {}) {
   async function importFile(call: Call, seen: Seen): Promise<{ res: Response; detail: string }> {
     const settings = call.services.settings.get()
     if (!settings.aiImport || !aiOn(call)) throw new HttpError(503, '지금은 파일 읽기를 쓸 수 없어요. 직접 입력해 주세요.')
-    const { cfg, own } = aiFor(call, '파일 읽기', seen)
+    const ai = await aiFor(call, '파일 읽기', seen)
+    const { cfg, own } = ai
     if (!cfg) throw new HttpError(503, '지금은 파일 읽기를 쓸 수 없어요. 직접 입력해 주세요.')
     // 큰 본문을 다 받기 전에 요청 수부터 본다
     limitRead('import', call)
@@ -395,7 +415,7 @@ export function createApi(options: ApiOptions = {}) {
     const track = trackOf(body.track)
     seen.target = `${cohort}학년도 입학${track ? ` ${track}` : ''} 편제표`
 
-    const over = own ? null : takeDaily(call, 'import', settings.dailyImportLimit)
+    const over = own ? null : takeDaily(call, 'import', settings.dailyImportLimit, ai.academy !== null)
     if (over) throw new HttpError(429, dailyMessage(over, '오늘 편제표 읽기 사용량을 다 썼어요. 직접 입력해 주세요.'))
     let out: string
     try {
@@ -412,7 +432,7 @@ export function createApi(options: ApiOptions = {}) {
         fetchImpl,
       )
     } catch (e) {
-      throw ownError(e, own)
+      throw ownError(call, e, ai)
     }
     const raw = extractJson(out)
     const variants = variantsOf(raw)
@@ -627,10 +647,12 @@ export function createApi(options: ApiOptions = {}) {
     const shared = isStaff ? null : db.latest(ref.office, ref.code, cohort, track)
     if (shared) return { res: json({ status: 'ready', curriculum: publicCurriculum(shared) }), detail: `이미 공유된 편제표 #${shared.id}` }
 
-    // 여기부터 AI. 사용자 키면 같은 파일도 사람마다 따로 읽음 (남의 키 오류를 받지 않게)
-    const { cfg, own } = aiFor(call, '편제표 자동 읽기', seen)
+    // 여기부터 AI. 사용자 키면 같은 파일도 사람마다, 학원 AI면 학원마다 따로 읽음 (남의 키 오류를 받지 않게)
+    const ai = await aiFor(call, '편제표 자동 읽기', seen)
+    const { cfg, own } = ai
     if (!cfg) throw new HttpError(503, '지금은 자동 읽기를 쓸 수 없어요. 편제표 파일을 직접 올려 주세요.')
-    const key = `${own && call.user ? `u${call.user.id}-` : ''}${ref.office}-${ref.code}-${cohort}-${track}-${doc.url}`
+    const who = own && call.user ? `u${call.user.id}-` : ai.academy !== null ? `a${ai.academy}-` : ''
+    const key = `${who}${ref.office}-${ref.code}-${cohort}-${track}-${doc.url}`
     let job = inflight.get(key)
     const remembered = job ? undefined : readResults.get(key)
     if (remembered) job = Promise.resolve(remembered)
@@ -638,7 +660,7 @@ export function createApi(options: ApiOptions = {}) {
       limitRead('read', call)
       // 하루 한도는 파일을 받은 뒤 AI 직전에 셈 (못 받은 파일은 안 셈). 합계가 어긋나 다시 묻는 것도 셈
       const reserve = (followUp: boolean) => {
-        const over = own ? null : takeDaily(call, 'read', settings.dailyReadLimit)
+        const over = own ? null : takeDaily(call, 'read', settings.dailyReadLimit, ai.academy !== null)
         if (!over) return true
         if (followUp) return false
         throw new HttpError(429, dailyMessage(over, '오늘 자동 읽기 사용량을 다 썼어요. 편제표 파일을 직접 올려 주세요.'))
@@ -666,7 +688,7 @@ export function createApi(options: ApiOptions = {}) {
       result = await job
     } catch (e) {
       if (e instanceof FetchBlocked) throw new HttpError(422, e.message)
-      throw ownError(e, own)
+      throw ownError(call, e, ai)
     }
     // 공유하지 않는 결과는 한동안 기억 (공유한 것은 저장소에 있음)
     const remember = () => readResults.set(key, result)
@@ -750,16 +772,17 @@ export function createApi(options: ApiOptions = {}) {
   function health(call: Call): Response {
     const cfg = currentAi(call)
     const s = call.services.settings.get()
-    // 사용자 키 모드면 서버 AI 없이도 켜짐
-    const ai = cfg !== null || s.userAiKey
+    // 통합 클라우드 로그인 가능 여부 (MAGO_CLOUD_URL·MAGO_APP_SECRET). 그러면 AI는 사람마다 학원 AI나 내 키
+    const mago = !!magoConfig(call.ctx.env)
+    // 사용자 키 모드·통합 클라우드면 서버 AI 없이도 켜짐
+    const ai = cfg !== null || s.userAiKey || mago
     return json({
       ai,
       // Gemini 무료 등급은 보낸 내용·답을 Google이 제품 개선에 쓰고 사람이 검토할 수 있음 (개인정보 안내용)
-      aiTraining: s.userAiKey || cfg?.kind === 'google',
-      // 자동 읽기·파일 읽기·문장으로 찾기를 각자 Gemini 키로 하는지
-      userKey: s.userAiKey,
-      // Google 로그인 가능 여부 (GOOGLE_CLIENT_ID·GOOGLE_CLIENT_SECRET)
-      login: googleReady(call.ctx.env),
+      aiTraining: s.userAiKey || mago || cfg?.kind === 'google',
+      // 자동 읽기·파일 읽기·문장으로 찾기를 각자 고른 AI(학원 AI·내 Gemini 키)로 하는지
+      userKey: s.userAiKey || mago,
+      login: mago,
       read: ai && s.aiRead,
       import: ai && s.aiImport,
       match: ai && s.aiMatch,
@@ -767,6 +790,9 @@ export function createApi(options: ApiOptions = {}) {
       notice: s.notice,
     })
   }
+
+  // 학원 학생 명단(통합 클라우드)과 학생별 설계
+  const students = studentRoutes({ fetch: fetchImpl })
 
   const routes: Record<string, Route> = {
     'GET /api/health': health,
@@ -779,7 +805,19 @@ export function createApi(options: ApiOptions = {}) {
     'POST /api/curriculum/read': curriculumRead,
     'POST /api/curriculum/report': curriculumReport,
     'POST /api/admin/hide': adminHide,
-    ...accountRoutes({ fetch: fetchImpl }),
+    ...accountRoutes({
+      fetch: fetchImpl,
+      logout: (call) => cloudLogout(call, fetchImpl),
+      me: async (call, user) => {
+        const p = call.services.mago.profile(user.id)
+        if (!p?.cloudId) return {}
+        const academy = p.academyId ? { id: p.academyId, name: p.academyName } : null
+        return { cloudId: p.cloudId, magoRole: p.magoRole, academy, ai: await magoAi.status(call) }
+      },
+    }),
+    ...magoRoutes({ fetch: fetchImpl }),
+    ...magoAi.routes,
+    ...students.routes,
     ...dataRoutes(),
     ...adminRoutes({
       usage: (s) => ({ read: usageOf(s).used('all:read'), import: usageOf(s).used('all:import'), match: usageOf(s).used('all:match') }),
@@ -790,13 +828,15 @@ export function createApi(options: ApiOptions = {}) {
   return async function handleApi(req: Request, ctx: ApiContext): Promise<Response> {
     const url = new URL(req.url)
     try {
-      if (req.method !== 'GET' && req.method !== 'HEAD' && !sameOrigin(req, url, ctx.env)) throw new HttpError(403, '허용되지 않은 요청이에요.')
       const key = `${req.method} ${url.pathname}`
-      const route = routes[key]
+      if (req.method !== 'GET' && req.method !== 'HEAD' && !sameOrigin(req, url, ctx.env, key)) throw new HttpError(403, '허용되지 않은 요청이에요.')
+      // 주소에 학생 ID가 든 경로는 students-api가 맞춰 봄
+      const route = routes[key] ?? students.match(key)
       if (!route) return json({ error: '없는 주소예요.' }, 404)
       const s = await prepare(ctx.env)
       const token = readCookie(req, sessionCookieName(!!ctx.secure))
-      const user = token ? s.accounts.sessionUser(token) : null
+      // 통합 클라우드 세션이 묶인 세션은 10분마다 클라우드에 다시 확인 (끊겼으면 null)
+      const user = token ? await magoSessionUser(s, token, ctx.env, fetchImpl) : null
       // PUBLIC_ROUTES 밖은 모두 로그인 필요
       if (!user && !PUBLIC_ROUTES.has(key)) return json({ error: '로그인이 필요해요.' }, 401)
       return await route({ req, url, ctx, services: s, user, token: user ? token : null })

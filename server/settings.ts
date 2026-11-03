@@ -56,8 +56,8 @@ export const SETTING_FIELDS: SettingField[] = [
     key: 'signupOpen',
     type: 'bool',
     group: '회원',
-    label: '회원가입 받기',
-    help: '끄면 새 계정을 만들 수 없어요. 로그인해야 쓸 수 있으니 처음 온 사람은 쓸 수 없고, 이미 가입한 사람과 대표 관리자만 들어와요.',
+    label: '처음 쓰는 계정 받기',
+    help: '끄면 이 프로그램에 처음 로그인하는 통합 클라우드 계정을 받지 않아요. 이미 쓰던 사람과 통합 클라우드 운영자만 들어와요.',
   },
   {
     key: 'aiRead',

@@ -120,7 +120,7 @@ export async function relayFetch(input: string | URL, init: RequestInit = {}): P
           port,
           method,
           path: `${url.pathname}${url.search}`,
-          headers: { host: url.host, 'user-agent': 'Mozilla/5.0 GwamokNavi/1.0', ...headers },
+          headers: { host: url.host, 'user-agent': 'Mozilla/5.0 MagoNavi/1.0', ...headers },
           createConnection: () => socket,
           signal: init.signal ?? undefined,
         },

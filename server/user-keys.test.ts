@@ -137,7 +137,7 @@ describe('사용자 Gemini API 키', () => {
     expect(busy.status).toBe(503)
   })
 
-  it('키를 지우거나 탈퇴하면 키도 지운다. 등록·지우기·내 키로 한 일은 이용 기록에 남는다', async () => {
+  it('키를 지우면 내 키로 못 쓴다. 등록·지우기·내 키로 한 일은 이용 기록에 남는다', async () => {
     const t = setup()
     await t.setting({ userAiKey: true })
     await t.call('POST', '/api/me/ai-key', { cookie: t.student, body: { apiKey: GOOD } })
@@ -149,10 +149,6 @@ describe('사용자 Gemini API 키', () => {
     expect(log).toContain('ai-key.delete:')
     expect(log.some((e) => e.startsWith('match:') && e.endsWith(' · 내 키'))).toBe(true)
     expect(JSON.stringify(log)).not.toContain(GOOD)
-
-    await t.call('POST', '/api/me/ai-key', { cookie: t.student, body: { apiKey: GOOD } })
-    expect((await t.call('POST', '/api/auth/delete', { cookie: t.student, body: { confirm: true } })).status).toBe(200)
-    expect((t.store.db.prepare('select count(*) n from user_ai_keys').get() as { n: number }).n).toBe(0)
   })
 })
 

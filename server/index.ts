@@ -95,7 +95,8 @@ async function serveStatic(req: http.IncomingMessage, res: http.ServerResponse, 
       return
     }
   }
-  const ext = extname(file!)
+  // 라이선스 전문(/LICENSE, 확장자 없음)은 내려받지 않고 글로 보이게
+  const ext = extname(file!) || (file!.endsWith(`${sep}LICENSE`) ? '.txt' : '')
   const headers: Record<string, string> = {
     ...SECURITY_HEADERS,
     'content-type': TYPES[ext] ?? 'application/octet-stream',
@@ -139,4 +140,7 @@ server.requestTimeout = 210_000
 server.headersTimeout = 20_000
 server.listen(PORT, HOST, () => {
   console.log(`gwamok-navi listening on http://${HOST}:${PORT} (static: ${root})`)
+  // 운영(nginx 뒤 HTTPS)에서는 TRUST_PROXY=1이 있어야 HTTPS인 줄 알고 로그인 쿠키에 __Host-·Secure를 붙인다 (mago-auth.ts)
+  if (/^https:/i.test(process.env.MAGO_CLOUD_URL?.trim() ?? '') && !TRUST_PROXY)
+    console.warn('[auth] MAGO_CLOUD_URL이 https인데 TRUST_PROXY=1이 없어요. nginx 뒤에서 돌리면 꼭 넣어 주세요 (로그인 쿠키·요청 제한이 제대로 동작하지 않아요).')
 })

@@ -46,8 +46,8 @@ export function UsersTab() {
             type="search"
             value={q}
             onChange={(e) => setFilter(() => setQ(e.target.value))}
-            placeholder="이름·이메일 찾기"
-            aria-label="이름이나 이메일 찾기"
+            placeholder="이름·아이디 찾기"
+            aria-label="이름이나 아이디 찾기"
           />
         </div>
         <select className="select" value={role} onChange={(e) => setFilter(() => setRole(e.target.value))} aria-label="권한">
@@ -62,10 +62,9 @@ export function UsersTab() {
         </select>
       </div>
       <p className="field-hint">
-        {owner
-          ? '관리자로 지정한 사람은 관리 화면을 쓸 수 있지만, 다른 사람을 관리자로 지정하거나 관리자 계정을 정지·삭제할 수는 없어요.'
-          : '관리자 지정·취소와 관리자 계정 정지·삭제는 대표 관리자만 할 수 있어요.'}{' '}
-        사용자는 Google 계정으로 로그인해 스스로 가입해요.
+        권한은 통합 클라우드 역할을 따라요. 통합 클라우드 운영자는 대표 관리자, 원장·선생님은 일반 계정이에요 (로그인할 때 맞춤).{' '}
+        {owner ? '' : '관리자 계정 정지·삭제는 대표 관리자만 할 수 있어요. '}
+        사용자는 통합 클라우드 계정으로 처음 로그인할 때 계정이 생겨요.
       </p>
 
       {list.error && <p className="form-error">{list.error}</p>}
@@ -74,10 +73,10 @@ export function UsersTab() {
           <thead>
             <tr>
               <th>이름</th>
-              <th>이메일</th>
+              <th>아이디</th>
               <th>권한</th>
               <th>상태</th>
-              <th>가입</th>
+              <th>처음 로그인</th>
               <th>마지막 로그인</th>
               <th>설계 저장</th>
               <th>
@@ -94,7 +93,7 @@ export function UsersTab() {
               return (
                 <tr key={u.id} className={u.disabled ? 'is-dim' : ''}>
                   <td data-label="이름">{u.name ? <strong>{u.name}</strong> : <span className="muted">-</span>}</td>
-                  <td data-label="이메일">
+                  <td data-label="아이디">
                     <span className="user-email">{u.email}</span>
                     {self && <span className="pill">나</span>}
                   </td>
@@ -108,7 +107,7 @@ export function UsersTab() {
                     )}
                   </td>
                   <td data-label="상태">{u.disabled ? <span className="badge is-warn">정지</span> : <span className="badge is-ok">이용 중</span>}</td>
-                  <td data-label="가입" className="num">
+                  <td data-label="처음 로그인" className="num">
                     {dateTime(u.createdAt, false)}
                   </td>
                   <td data-label="마지막 로그인" className="num">
@@ -119,27 +118,6 @@ export function UsersTab() {
                     <Link to={`/admin?tab=activity&q=${encodeURIComponent(u.email)}`} className="btn btn-sm">
                       기록
                     </Link>
-                    {owner && manageable && (
-                      <button
-                        type="button"
-                        className="btn btn-sm"
-                        disabled={busy}
-                        onClick={() => {
-                          const grant = u.role === 'user'
-                          if (
-                            !confirm(
-                              grant
-                                ? `${u.email}을(를) 관리자로 지정할까요? 관리 화면(설정·편제표·대입 자료·AI 연결·사용자 정지)을 쓸 수 있게 돼요.`
-                                : `${u.email}의 관리자 지정을 취소할까요?`,
-                            )
-                          )
-                            return
-                          void run(u, () => adminApi.setRole(u.id, grant ? 'admin' : 'user'), grant ? '관리자로 지정했어요.' : '관리자 지정을 취소했어요.')
-                        }}
-                      >
-                        {u.role === 'user' ? '관리자 지정' : '관리자 취소'}
-                      </button>
-                    )}
                     {manageable && (
                       <>
                         <button

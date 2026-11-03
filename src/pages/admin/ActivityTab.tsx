@@ -8,14 +8,14 @@ import { LogTable } from './LogTable'
 
 const GROUPS: [string, string][] = [
   ['', '모든 행동'],
-  ['account', '가입·로그인·계정'],
+  ['account', '로그인·계정'],
   ['design', '과목 설계'],
   ['curriculum', '편제표'],
-  ['ai', '문장으로 찾기·Gemini 키'],
+  ['ai', '문장으로 찾기·AI 고르기·Gemini 키'],
 ]
 
 /**
- * 사용자 로그: 가입·로그인, 설계 변경 하나하나, 편제표 찾기·읽기, AI 기능 사용을 시간순으로.
+ * 사용자 로그: 처음 로그인·로그인, 설계 변경 하나하나, 편제표 찾기·읽기, AI 기능 사용을 시간순으로.
  * 사용자 탭의 '기록'에서 오면 그 사람 이메일로 걸러 둠. 사람을 누르면 그 사람 기록만
  */
 export function ActivityTab() {
@@ -56,8 +56,7 @@ export function ActivityTab() {
         </button>
       </div>
       <p className="hint">
-        사용자가 한 일을 최근 것부터 보여 줘요. 이름이나 이메일을 누르면 그 사람 기록만 봐요. 1년 동안 남기고, 탈퇴하거나 지운 계정은 누구였는지 알 수 없게
-        바꿔요. 올린 파일·적은 문장의 내용과 IP는 남기지 않아요.
+        사용자가 한 일을 최근 것부터 보여 줘요. 이름이나 아이디를 누르면 그 사람 기록만 봐요. 1년 동안 남기고, 지운 계정은 누구였는지 알 수 없게 바꿔요. 올린 파일·적은 문장의 내용과 IP는 남기지 않아요.
       </p>
       {list.error && <p className="form-error">{list.error}</p>}
       <div className={`table-wrap${list.loading ? ' is-loading' : ''}`}>

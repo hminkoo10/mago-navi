@@ -172,8 +172,6 @@ export const adminApi = {
     const r = await call<{ users: AdminUser[]; total: number; page: number }>(`/api/admin/users${qs(params)}`)
     return { items: r.users, total: r.total, page: r.page }
   },
-  /** 관리자 지정·취소 (대표 관리자만) */
-  setRole: (id: number, role: 'user' | 'admin') => call<{ user: AdminUser }>('/api/admin/users/role', postJson({ id, role })),
   /** 이용 정지·풀기 */
   setDisabled: (id: number, disabled: boolean) => call<{ user: AdminUser }>('/api/admin/users/update', postJson({ id, disabled })),
   deleteUser: (id: number) => call<{ ok: boolean }>('/api/admin/users/delete', postJson({ id })),
@@ -236,7 +234,7 @@ export const ACTION_LABEL: Record<string, string> = {
   'ai.select': 'AI 연결 바꾸기',
   'ai.test': 'AI 연결 시험',
   // 사용자가 한 일
-  'auth.signup': '가입',
+  'auth.signup': '처음 로그인',
   'auth.login': '로그인',
   'auth.logout': '로그아웃',
   'auth.delete': '탈퇴',
@@ -249,6 +247,7 @@ export const ACTION_LABEL: Record<string, string> = {
   match: '문장으로 분야 찾기',
   'ai-key.save': 'Gemini 키 등록',
   'ai-key.delete': 'Gemini 키 지우기',
+  'ai-key.source': 'AI 고르기',
   'account.name': '이름 바꾸기',
   'design.school': '학교 고르기',
   'design.majors': '분야 고르기',

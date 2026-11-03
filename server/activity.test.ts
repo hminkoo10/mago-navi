@@ -37,15 +37,25 @@ describe('로그인 필수', () => {
       ['GET', '/api/data/updates'],
       ['GET', '/api/me/data'],
       ['POST', '/api/me/data'],
+      ['GET', '/api/me/ai'],
+      ['POST', '/api/me/ai'],
+      ['GET', '/api/students'],
+      ['POST', '/api/students'],
+      ['PATCH', '/api/students/stu-1'],
+      ['DELETE', '/api/students/stu-1'],
+      ['POST', '/api/students/stu-1/restore'],
+      ['GET', '/api/students/stu-1/data'],
+      ['POST', '/api/students/stu-1/data'],
+      ['GET', '/api/academy/members'],
       ['GET', '/api/admin/overview'],
       ['GET', '/api/admin/log'],
     ]
     for (const [method, path] of closed) {
-      const res = await api(method === 'GET' ? get(path) : post(path, {}), ctx)
+      const res = await api(method === 'GET' ? get(path) : new Request(post(path, {}), { method }), ctx)
       expect(res.status, path).toBe(401)
       expect(await res.json(), path).toEqual({ error: '로그인이 필요해요.' })
     }
-    for (const path of ['/api/health', '/api/auth/me', '/api/auth/pending']) expect((await api(get(path), ctx)).status, path).toBe(200)
+    for (const path of ['/api/health', '/api/auth/me']) expect((await api(get(path), ctx)).status, path).toBe(200)
     // 스크립트용 숨기기는 로그인 대신 ADMIN_TOKEN을 본다
     expect(await (await api(post('/api/admin/hide', { id: 1 }), ctx)).json()).toEqual({ error: '권한이 없어요.' })
     // 누가 했는지 모르는 요청은 기록하지 않는다
@@ -58,7 +68,7 @@ describe('로그인 필수', () => {
     const cookie = sessionFor(store, { email: 'student@example.com' })
     expect((await api(get('/api/data/version', { cookie }), ctx)).status).toBe(200)
     const accounts = new Accounts(store.db)
-    accounts.setDisabled(accounts.bySub('sub-student@example.com')!.id, true)
+    accounts.setDisabled(accounts.bySub('mago:test-student@example.com')!.id, true)
     expect((await api(get('/api/data/version', { cookie }), ctx)).status).toBe(401)
   })
 })

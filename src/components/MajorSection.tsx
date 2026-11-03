@@ -4,7 +4,7 @@ import type { Field } from '../data/schema'
 import { UNITS } from '../data/units'
 import { fineOf, searchMajors } from '../engine/search'
 import { ApiError, matchMajors } from '../lib/api'
-import { useApp, useNeedKey } from '../lib/app'
+import { useAiTraining, useApp, useNeedKey } from '../lib/app'
 import { KeyNeeded } from './KeyNeeded'
 import { IconSearch } from './icons'
 
@@ -32,6 +32,7 @@ const labelOf = (id: string) => {
 export function MajorSection({ selected, onChange, aiEnabled }: Props) {
   const { features } = useApp()
   const needKey = useNeedKey()
+  const training = useAiTraining()
   const [query, setQuery] = useState('')
   const [lookup, setLookup] = useState<Lookup>({ state: 'idle' })
   const hits = searchMajors(query).slice(0, 6)
@@ -101,7 +102,7 @@ export function MajorSection({ selected, onChange, aiEnabled }: Props) {
       {aiEnabled && !trimmed && (
         <p className="hint">
           하고 싶은 일을 문장으로 적고 Enter를 누르면 AI가 맞는 세부 학과를 골라 줘요.
-          {features.aiTraining && ' 적은 문장은 Google Gemini(무료 등급)로 보내져 Google이 개선에 쓸 수 있으니 이름 같은 개인정보는 적지 마세요.'}
+          {training && ' 적은 문장은 Google Gemini(무료 등급)로 보내져 Google이 개선에 쓸 수 있으니 이름 같은 개인정보는 적지 마세요.'}
         </p>
       )}
 

@@ -25,8 +25,10 @@ function toAiError(e: unknown): AiError {
   if (e instanceof Anthropic.APIConnectionTimeoutError || e instanceof Anthropic.APIUserAbortError) return new AiError(504, 'AI 응답이 너무 늦어요.', 'timeout')
   if (e instanceof Anthropic.APIConnectionError) return new AiError(502, 'AI 서버에 연결하지 못했어요.', 'connection')
   if (e instanceof Anthropic.APIError) {
-    const body = e.error as { error?: { type?: unknown } } | undefined
-    const type = typeof body?.error?.type === 'string' && /^[\w.-]{1,40}$/.test(body.error.type) ? ` ${body.error.type}` : ''
+    // Claude 는 error.type, 중계(통합 클라우드)가 직접 낸 오류는 error.code
+    const body = e.error as { error?: { type?: unknown; code?: unknown } } | undefined
+    const t = [body?.error?.type, body?.error?.code].find((v): v is string => typeof v === 'string') ?? ''
+    const type = /^[\w.-]{1,40}$/.test(t) ? ` ${t}` : ''
     const detail = `HTTP ${e.status ?? '?'}${type}`
     // 429 사용량 초과, 529 서버 과부하
     if (e.status === 429 || e.status === 529) return new AiError(429, 'AI 사용량이 몰려 있어요. 잠시 후 다시 해 주세요.', detail)

@@ -2,19 +2,19 @@ import { createHash, randomBytes } from 'node:crypto'
 import type { DatabaseSync } from 'node:sqlite'
 
 // 계정·로그인 세션·계정에 저장한 설계·관리 기록.
-// 로그인은 Google 계정으로만. Google 고유 번호(sub)와 이메일만 보관, 비밀번호 없음.
+// 로그인은 마고에듀 통합 클라우드 계정으로만 (mago-auth.ts). google_sub 칸에 'mago:<클라우드 계정 ID>'를 두고, 비밀번호는 없음.
 // 세션 토큰과 로그인 중간 값은 SHA-256 해시로만 저장 (저장소가 새어도 바로 못 쓰게).
 
-/** owner: 대표 관리자 (OWNER_EMAIL 한 사람, 관리자 지정·취소), admin: 지정된 관리자, user: 일반 */
+/** owner: 대표 관리자 (통합 클라우드 운영자), admin: 예전에 지정된 관리자, user: 일반 */
 export type Role = 'user' | 'admin' | 'owner'
 
 export const isAdmin = (u: { role: Role }) => u.role === 'admin' || u.role === 'owner'
 
 export interface User {
   id: number
-  /** Google 계정 이메일. 로그인할 때마다 맞춤 */
+  /** 통합 클라우드 아이디. 로그인할 때마다 맞춤 */
   email: string
-  /** 가입 때 적은 실명. 예전 가입자는 비어 있을 수 있음 */
+  /** 통합 클라우드 계정 이름 */
   name: string
   role: Role
   disabled: boolean
@@ -43,19 +43,6 @@ const toUser = (r: UserRow): User => ({
   lastLoginAt: r.last_login_at,
 })
 
-/**
- * 실명 검사: 2~30자, 글자로 시작·끝, 사이에는 글자·빈칸·가운뎃점·하이픈·아포스트로피만.
- * 숫자·기호, 자음·모음만 쓴 이름(ㅇㅇ)은 거부. 맞지 않으면 null
- */
-export function cleanName(raw: unknown): string | null {
-  if (typeof raw !== 'string') return null
-  const name = raw.normalize('NFC').replace(/\s+/g, ' ').trim()
-  if (name.length < 2 || name.length > 30) return null
-  if (!/^\p{L}(?:[\p{L}\p{M} ·'-]*\p{L})?$/u.test(name)) return null
-  if (/[\u1100-\u11FF\u3130-\u318F]/.test(name)) return null
-  return name
-}
-
 export class AccountError extends Error {
   readonly status: number
 
@@ -68,14 +55,13 @@ export class AccountError extends Error {
 // ---- 세션 ----
 
 export const SESSION_DAYS = 30
-const hashOf = (token: string) => createHash('sha256').update(token).digest('hex')
+/** 세션 토큰 → 저장하는 id (클라우드 세션을 같은 행에 묶을 때도 씀) */
+export const hashOf = (token: string) => createHash('sha256').update(token).digest('hex')
 const newToken = () => randomBytes(32).toString('base64url')
 const TOKEN_RE = /^[A-Za-z0-9_-]{40,60}$/
 
-/** 로그인 시작 → Google → 돌아옴까지의 유효 시간 */
+/** 로그인 시작 → 통합 클라우드 → 돌아옴까지의 유효 시간 */
 const FLOW_MINUTES = 10
-/** 첫 로그인 뒤 가입 동의를 마칠 때까지의 유효 시간 */
-const PENDING_MINUTES = 15
 
 export interface SavedData {
   data: unknown
@@ -107,17 +93,10 @@ export const ACTIVITY_PER_USER = 5000
 /** 탈퇴·삭제한 계정의 기록에 남기는 이름 (누구였는지 모르게) */
 export const GONE_USER = '탈퇴·삭제한 계정'
 
-/** 로그인 시작 때 정한 값. Google에서 돌아오면 맞춰 봄 */
+/** 로그인 시작 때 정한 값. 통합 클라우드에서 돌아오면 맞춰 봄 (verifier·nonce는 Google 로그인 때 쓰던 칸이라 비워 둠) */
 export interface OAuthFlow {
   verifier: string
   nonce: string
-  next: string
-}
-
-/** Google 로그인은 했고 가입 동의는 아직인 사람 */
-export interface PendingSignup {
-  sub: string
-  email: string
   next: string
 }
 
@@ -141,7 +120,7 @@ export class Accounts {
         db.exec('rollback')
         throw e
       }
-      console.log('[auth] 아이디·비밀번호 계정 표를 users_password_legacy로 옮겼어요. 이제 Google 계정으로만 로그인해요.')
+      console.log('[auth] 아이디·비밀번호 계정 표를 users_password_legacy로 옮겼어요. 이제 통합 클라우드 계정으로만 로그인해요.')
     }
     db.exec(`
       create table if not exists users (
@@ -182,13 +161,6 @@ export class Accounts {
         id text primary key,
         verifier text not null,
         nonce text not null,
-        next text not null,
-        created_at text not null
-      );
-      create table if not exists oauth_pending (
-        id text primary key,
-        google_sub text not null,
-        email text not null,
         next text not null,
         created_at text not null
       );
@@ -263,42 +235,32 @@ export class Accounts {
     return r ? toUser(r) : null
   }
 
-  /** Google 계정 고유 번호(sub)로 찾기 */
+  /** 계정 고유 값(google_sub 칸, 'mago:<클라우드 계정 ID>')으로 찾기 */
   bySub(sub: string): User | null {
     const r = this.row('google_sub', sub)
     return r ? toUser(r) : null
   }
 
   create(identity: { sub: string; email: string }, opts: { role?: Role; name?: string } = {}): User {
-    if (this.row('google_sub', identity.sub)) throw new AccountError(409, '이미 가입한 Google 계정이에요.')
+    if (this.row('google_sub', identity.sub)) throw new AccountError(409, '이미 있는 계정이에요.')
     const res = this.db
       .prepare('insert into users (google_sub, email, name, role, created_at) values (?, ?, ?, ?, ?)')
       .run(identity.sub, identity.email, opts.name ?? '', opts.role ?? 'user', new Date().toISOString())
     return this.byId(Number(res.lastInsertRowid))!
   }
 
-  /** cleanName을 거친 값만 */
+  /** 로그인할 때 통합 클라우드 이름이 바뀌었으면 맞춤 */
   setName(id: number, name: string): void {
     this.db.prepare('update users set name = ? where id = ?').run(name, id)
   }
 
-  /** 로그인할 때 Google 이메일이 바뀌었으면 맞춤 */
+  /** 로그인할 때 통합 클라우드 아이디가 바뀌었으면 맞춤 */
   setEmail(id: number, email: string): void {
     this.db.prepare('update users set email = ? where id = ? and email != ?').run(email, id, email)
   }
 
   setRole(id: number, role: Role): void {
     this.db.prepare('update users set role = ? where id = ?').run(role, id)
-  }
-
-  /**
-   * 대표 관리자를 OWNER_EMAIL에 맞춘다: 그 계정은 owner, 예전 owner였던 다른 계정은 admin으로.
-   * 서버를 켤 때와 로그인할 때 부름. 이메일은 소문자로 비교
-   */
-  syncOwner(email: string): void {
-    const owner = email.trim().toLowerCase()
-    this.db.prepare("update users set role = 'admin' where role = 'owner' and lower(email) != ?").run(owner)
-    if (owner) this.db.prepare("update users set role = 'owner', disabled = 0 where lower(email) = ?").run(owner)
   }
 
   setDisabled(id: number, disabled: boolean): void {
@@ -355,9 +317,9 @@ export class Accounts {
     }
   }
 
-  // ---- Google 로그인 중간 단계 ----
+  // ---- 로그인 중간 단계 ----
 
-  /** 돌려준 state는 Google에 보내고 같은 값을 쿠키에도 둔다 */
+  /** 돌려준 state는 통합 클라우드에 보내고 같은 값을 쿠키에도 둔다 */
   startFlow(flow: OAuthFlow, now = new Date()): string {
     const state = newToken()
     const at = now.toISOString()
@@ -368,7 +330,7 @@ export class Accounts {
     return state
   }
 
-  /** Google에서 돌아온 state의 값. 한 번만 쓸 수 있고, 시간이 지났으면 null */
+  /** 통합 클라우드에서 돌아온 state의 값. 한 번만 쓸 수 있고, 시간이 지났으면 null */
   takeFlow(state: string, now = new Date()): OAuthFlow | null {
     if (!TOKEN_RE.test(state)) return null
     const id = hashOf(state)
@@ -378,28 +340,6 @@ export class Accounts {
     this.db.prepare('delete from oauth_flows where id = ?').run(id)
     if (now.getTime() - Date.parse(r.created_at) > FLOW_MINUTES * 60_000) return null
     return { verifier: r.verifier, nonce: r.nonce, next: r.next }
-  }
-
-  /** 첫 로그인: 가입 동의를 받을 때까지 Google 계정을 잠시 맡아 둔다. 돌려준 토큰은 쿠키에 */
-  startPending(p: PendingSignup, now = new Date()): string {
-    const token = newToken()
-    this.db.prepare('delete from oauth_pending where created_at < ?').run(new Date(now.getTime() - PENDING_MINUTES * 60_000).toISOString())
-    this.db
-      .prepare('insert into oauth_pending (id, google_sub, email, next, created_at) values (?, ?, ?, ?, ?)')
-      .run(hashOf(token), p.sub, p.email, p.next, now.toISOString())
-    return token
-  }
-
-  /** 맡아 둔 가입 정보. take면 꺼내면서 지움 */
-  pending(token: string, { take = false } = {}, now = new Date()): PendingSignup | null {
-    if (!TOKEN_RE.test(token)) return null
-    const id = hashOf(token)
-    const r = this.db.prepare('select google_sub, email, next, created_at from oauth_pending where id = ?').get(id) as
-      { google_sub: string; email: string; next: string; created_at: string } | undefined
-    if (!r) return null
-    if (take) this.db.prepare('delete from oauth_pending where id = ?').run(id)
-    if (now.getTime() - Date.parse(r.created_at) > PENDING_MINUTES * 60_000) return null
-    return { sub: r.google_sub, email: r.email, next: r.next }
   }
 
   // ---- 세션 ----

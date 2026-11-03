@@ -3,7 +3,7 @@ import { dateTime } from '../../lib/format'
 import { useLoad } from '../../lib/hooks'
 
 const SWITCHES: [string, string, string][] = [
-  ['signupOpen', '회원가입', '받음|안 받음'],
+  ['signupOpen', '처음 쓰는 계정', '받음|안 받음'],
   ['aiRead', '자동 읽기', '켬|끔'],
   ['homepageSearch', '학교 홈페이지 찾기', '켬|끔'],
   ['obeyRobots', '홈페이지 robots.txt', '지킴|무시'],
@@ -38,7 +38,7 @@ export function OverviewTab({ go }: { go: (tab: string) => void }) {
           <span className="stat-label">최근 7일</span>
           <strong className="stat-num num">+{users.new7d.toLocaleString('ko-KR')}</strong>
           <span className="stat-sub">
-            새 가입 · 로그인한 사람 {users.active7d.toLocaleString('ko-KR')} · 로그인 유지 {data.sessions.toLocaleString('ko-KR')}
+            새 계정 · 로그인한 사람 {users.active7d.toLocaleString('ko-KR')} · 로그인 유지 {data.sessions.toLocaleString('ko-KR')}
           </span>
         </div>
         <button type="button" className="stat" onClick={() => go('curricula')}>

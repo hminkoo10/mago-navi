@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import { designChanges } from './design-log'
-import { Store } from './store'
-import { Accounts } from './accounts'
-import { sessionFor, testApi } from './testing'
 
 const base = () => ({
   prefs: {
@@ -98,60 +95,5 @@ describe('사용자 로그: 설계에서 한 일', () => {
   it('모양이 틀린 값에도 멈추지 않는다', () => {
     expect(lines(null, null)).toEqual([])
     expect(lines({ prefs: 3, plans: 'x' }, { prefs: { majors: [1, null, 'cs-software'] }, schools: [null] })).toEqual(['design.majors [설계] + 소프트웨어'])
-  })
-})
-
-describe('내 이름', () => {
-  it('내 계정에서 실명을 적거나 바꾸고, 관리자는 이름으로 사용자와 기록을 찾는다', async () => {
-    const store = new Store(':memory:')
-    const api = testApi({ store })
-    const post = (path: string, body: unknown, cookie?: string) =>
-      new Request(`http://app.test${path}`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', origin: 'http://app.test', ...(cookie ? { cookie } : {}) },
-        body: JSON.stringify(body),
-      })
-    const ctx = { ip: '1.1.1.1', env: {} }
-    expect((await api(post('/api/me/name', { name: '1234' }), ctx)).status).toBe(400)
-    const ok = await api(post('/api/me/name', { name: '박서준' }), ctx)
-    expect(ok.status).toBe(200)
-    expect((await ok.json()).user).toMatchObject({ email: 'student@example.com', name: '박서준' })
-    const boss = sessionFor(store, { email: 'boss@example.com', role: 'owner' })
-    const users = await (await api(new Request('http://app.test/api/admin/users?q=%EB%B0%95%EC%84%9C', { headers: { cookie: boss } }), ctx)).json()
-    expect(users.users.map((u: { email: string; name: string }) => `${u.name} ${u.email}`)).toEqual(['박서준 student@example.com'])
-    const log = await (await api(new Request('http://app.test/api/admin/log?kind=user&group=account', { headers: { cookie: boss } }), ctx)).json()
-    expect(log.entries.map((e: { name: string; action: string; detail: string }) => `${e.name} ${e.action} ${e.detail}`)).toEqual([
-      '박서준 account.name 이름 적음',
-    ])
-    expect(new Accounts(store.db).logs({ q: '박서준' }).total).toBe(1)
-  })
-})
-
-describe('이름 규칙', () => {
-  it('화면과 서버가 같은 이름을 받고 같은 이름을 거른다', async () => {
-    const { cleanName } = await import('./accounts')
-    const { nameProblem, tidyName } = await import('../src/lib/name')
-    const cases = [
-      '김민준',
-      ' 김  민준 ',
-      'Kim Min-jun',
-      "O'Neil",
-      '남궁 민',
-      '王小明',
-      '김',
-      '1234',
-      '홍길동2',
-      'ㅇㅇ',
-      '김ㅁ',
-      '-김민',
-      'kim@x.com',
-      'a'.repeat(31),
-      '',
-    ]
-    for (const raw of cases) {
-      const server = cleanName(raw)
-      expect(nameProblem(raw) === '', raw).toBe(server !== null)
-      if (server) expect(tidyName(raw)).toBe(server)
-    }
   })
 })

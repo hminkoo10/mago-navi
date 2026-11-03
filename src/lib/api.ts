@@ -52,7 +52,7 @@ export interface Features {
   match: boolean
   /** 자동 읽기·파일 읽기·문장으로 찾기에 사용자 각자의 Gemini API 키를 쓰는지 (관리자 설정) */
   userKey: boolean
-  /** Google 로그인 가능 여부 (서버에 Google 앱 키 필요) */
+  /** 통합 클라우드 로그인 가능 여부 (서버에 MAGO_CLOUD_URL·MAGO_APP_SECRET 필요) */
   login: boolean
   signup: boolean
   notice: string
@@ -102,7 +102,7 @@ export async function health(): Promise<Features> {
 
 // ---- 계정 ----
 
-/** owner: 대표 관리자 (관리자 지정·취소), admin: 지정된 관리자, user: 일반 */
+/** owner: 대표 관리자 (통합 클라우드 운영자), admin: 관리자, user: 일반 (원장·선생님) */
 export type Role = 'user' | 'admin' | 'owner'
 
 /** 내 Gemini API 키 정보. 키 값은 오지 않고 끝 4자리(hint)만 */
@@ -113,33 +113,55 @@ export interface AiKeyInfo {
   ok: boolean
 }
 
+/** 학원 AI 상태. ready: 부를 수 있음, none: 없음, lan: 학원 안 주소, model: 모델 이름이 없음, no-academy: 학원 사람이 아님, offline: 클라우드 연결 실패 */
+export type AcademyAiState = 'ready' | 'none' | 'lan' | 'model' | 'no-academy' | 'offline'
+
+/** 'academy': 학원 AI (기본), 'own': 내 Gemini API 키 */
+export type AiSource = 'academy' | 'own'
+
+/** AI 기능에 쓸 AI (통합 클라우드 로그인일 때만) */
+export interface AiStatus {
+  source: AiSource
+  academy: { state: AcademyAiState; provider: string; model: string }
+  /** 학원 AI를 못 쓸 때 운영자 서버 AI로 넘어가는지 */
+  fallback: boolean
+  /** 지금 AI 기능을 쓸 수 있는지 (못 쓰면 키 등록 안내) */
+  ready: boolean
+}
+
 export interface Me {
   id: number
-  /** 로그인한 Google 계정 이메일 */
+  /** 통합 클라우드 아이디 */
   email: string
-  /** 가입 때 적은 실명. 예전 가입자는 빈 문자열 */
+  /** 통합 클라우드에 적힌 이름 */
   name: string
   role: Role
   createdAt: string
   aiKey?: AiKeyInfo | null
+  /** 통합 클라우드 계정 ID */
+  cloudId?: string
+  /** 통합 클라우드 역할 (admin·director·teacher) */
+  magoRole?: string
+  /** 속한 학원. 없으면 학생 명단 없이 내 계정에 설계 하나 */
+  academy?: { id: number; name: string } | null
+  ai?: AiStatus | null
 }
 
 export const isAdminRole = (role: Role) => role === 'admin' || role === 'owner'
 
 export const ROLE_TEXT: Record<Role, string> = { owner: '대표 관리자', admin: '관리자', user: '일반 계정' }
 
-/** Google 로그인 시작 주소 (페이지 이동). 끝나면 next로 돌아온다 */
-export const googleLoginUrl = (next?: string | null) => `/api/auth/google${next ? `?next=${encodeURIComponent(next)}` : ''}`
+/** 통합 클라우드 로그인 시작 주소 (페이지 이동). 끝나면 next로 돌아온다 */
+export const magoLoginUrl = (next?: string | null) => `/api/auth/mago${next ? `?next=${encodeURIComponent(next)}` : ''}`
 
 export const auth = {
   me: () => call<{ user: Me | null }>('/api/auth/me'),
-  /** Google 로그인은 했지만 아직 가입 동의를 하지 않은 계정 */
-  pending: () => call<{ pending: { email: string; next: string } | null }>('/api/auth/pending'),
-  complete: (b: { agreeAge: boolean; agreePrivacy: boolean; name: string }) => call<{ user: Me; next: string }>('/api/auth/complete', postJson(b)),
-  /** 실명 적기·바꾸기 */
-  setName: (name: string) => call<{ user: Me }>('/api/me/name', postJson({ name })),
   logout: () => call<{ ok: boolean }>('/api/auth/logout', postJson({})),
-  deleteAccount: () => call<{ ok: boolean }>('/api/auth/delete', postJson({ confirm: true })),
+}
+
+/** '학원 AI / 내 키' 고르기 */
+export const myAi = {
+  set: (source: AiSource) => call<{ ai: AiStatus | null }>('/api/me/ai', postJson({ source })),
 }
 
 /** 내 Gemini API 키 등록·삭제. 등록 때 서버가 Google에 짧게 물어 키를 확인한다 */
@@ -160,17 +182,23 @@ const KEEPALIVE_MAX = 60_000
 /** 오래 걸리는 요청은 끊는다 (멈춘 연결이 저장을 계속 붙잡지 않게) */
 const timeout = (ms: number) => (typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(ms) : undefined)
 
-/** 계정 설계 (고른 학교·분야·대학, 편제표) */
-export const myData = {
-  get: () => call<{ saved: SavedData | null }>('/api/me/data', { signal: timeout(20_000) }),
+/** 설계 하나를 받고 올리는 곳 (내 계정 설계, 학원 학생의 설계) */
+export interface DesignApi {
+  get: () => Promise<{ saved: SavedData | null }>
   /**
    * base: 이 탭이 마지막으로 받거나 저장한 판 (계정이 비었다고 알면 null). 계정 판과 다르면 서버가 409와 계정 설계를 돌려준다.
    * keepalive: 탭을 닫는 중일 때. 본문이 KEEPALIVE_MAX 이하일 때만 keepalive, 크면 보통 요청
    */
-  put: (data: unknown, base: string | null, opts: { keepalive?: boolean } = {}) => {
+  put: (data: unknown, base: string | null, opts?: { keepalive?: boolean }) => Promise<{ updatedAt: string }>
+}
+
+/** path의 설계 (GET으로 받고 POST로 올림) */
+export const designApi = (path: string): DesignApi => ({
+  get: () => call<{ saved: SavedData | null }>(path, { signal: timeout(20_000) }),
+  put: (data, base, opts = {}) => {
     const body = JSON.stringify({ data, base })
     const keepalive = !!opts.keepalive && new TextEncoder().encode(body).length <= KEEPALIVE_MAX
-    return call<{ updatedAt: string }>('/api/me/data', {
+    return call<{ updatedAt: string }>(path, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body,
@@ -178,7 +206,10 @@ export const myData = {
       signal: timeout(30_000),
     })
   },
-}
+})
+
+/** 계정 설계 (고른 학교·분야·대학, 편제표) */
+export const myData = designApi('/api/me/data')
 
 export function matchMajors(text: string) {
   return call<{ majors: { id: string; why: string }[] }>('/api/match', postJson({ text }))

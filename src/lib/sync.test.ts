@@ -203,3 +203,48 @@ describe('계정 저장', () => {
     expect(t.sync.isClean()).toBe(false)
   })
 })
+
+describe('학생 설계 저장', () => {
+  /** 학생 설계를 받고 올리는 곳 (내 계정 설계 대신) */
+  const studentApi = () => ({ get: vi.fn().mockResolvedValue(saved(['a'], 'r1')), put: vi.fn().mockResolvedValue({ updatedAt: 'r2' }) })
+
+  it('host.api가 있으면 내 계정 설계 대신 그곳에서 받고 올린다', async () => {
+    const api = studentApi()
+    const t = setup(['a'])
+    t.host.api = api
+    const sync = new AccountSync(t.host)
+    sync.start()
+    await vi.advanceTimersByTimeAsync(0)
+    t.box.state = { items: ['a', 'b'] }
+    sync.changed()
+    await vi.advanceTimersByTimeAsync(700)
+    expect(api.put).toHaveBeenCalledWith({ items: ['a', 'b'] }, 'r1', { keepalive: false })
+    expect(get).not.toHaveBeenCalled()
+    expect(put).not.toHaveBeenCalled()
+  })
+
+  it('보기만 하는 설계(지운 학생)는 받아서 합치기만 하고 올리지 않는다', async () => {
+    const api = studentApi()
+    const t = setup(['b'])
+    t.host.api = api
+    t.host.readOnly = true
+    const sync = new AccountSync(t.host)
+    sync.start()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(t.box.state.items).toEqual(['a', 'b'])
+    sync.changed()
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(api.put).not.toHaveBeenCalled()
+  })
+
+  it('그사이 학생을 지워 403이면 거절된 것으로 보고 다시 보내지 않는다', async () => {
+    const t = await loaded()
+    put.mockRejectedValue(new ApiError(403, '지운 학생이라 설계를 고칠 수 없어요. 먼저 학생을 되살려 주세요.'))
+    t.box.state = { items: ['a', 'b'] }
+    t.sync.changed()
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(put).toHaveBeenCalledTimes(1)
+    expect(t.last()).toBe('rejected')
+    expect(t.box.reports.at(-1)?.message).toContain('되살려')
+  })
+})

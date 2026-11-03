@@ -7,13 +7,14 @@ import { UNIV_BY_ID } from '../data/universities'
 import { useLocation } from '../lib/router'
 import { IconClose, IconMenu } from './icons'
 import { Link } from './Link'
+import { StudentPicker } from './StudentPicker'
 
 export type Section = 'home' | 'plan' | 'admissions' | 'universities' | 'help' | 'account' | 'admin' | 'other'
 
 export function Brand() {
   return (
-    <Link to="/" className="brand" aria-label="과목내비 처음으로">
-      과목<span className="brand-mark">내비</span>
+    <Link to="/" className="brand" aria-label="마고 과목내비 처음으로">
+      마고 과목<span className="brand-mark">내비</span>
     </Link>
   )
 }
@@ -106,7 +107,7 @@ export function Header({ section }: { section: Section }) {
   const accounts = authReady && features.server
   // 로그인해야 쓰는 서비스라 로그인 전에는 '시작하기' 대신 로그인
   const guest = accounts && !user
-  const onAuthPage = path === '/login' || path === '/signup'
+  const onAuthPage = path === '/login'
   const loginTo = `/login?next=${encodeURIComponent(path)}`
 
   return (
@@ -121,6 +122,7 @@ export function Header({ section }: { section: Section }) {
           ))}
         </nav>
         <div className="head-right">
+          {accounts && user && <StudentPicker />}
           {guest ? (
             !onAuthPage && (
               <Link to={loginTo} className="btn btn-primary btn-sm">
@@ -252,6 +254,9 @@ export function NoticeBar() {
   )
 }
 
+/** 이 프로그램의 소스 코드 (AGPL-3.0: 서버로 쓰게 하는 사람에게도 소스를 알려야 함) */
+export const SOURCE_URL = 'https://github.com/hminkoo10/mago-navi'
+
 export function Footer() {
   const { user } = useApp()
   return (
@@ -269,6 +274,10 @@ export function Footer() {
           <Link to="/admissions">전형 찾기</Link>
           <Link to="/updates">대입 정보 소식</Link>
           {user && isAdminRole(user.role) && <Link to="/admin">관리</Link>}
+          <a href={SOURCE_URL} target="_blank" rel="noopener noreferrer">
+            소스 코드(GitHub)
+          </a>
+          <a href="/LICENSE">라이선스(AGPL-3.0)</a>
         </nav>
         <p className="foot-note">
           권장과목은 지원 자격이 아니고 대학 발표에 따라 바뀔 수 있어요. 지원하기 전에 대학 입학처 공지를 확인하세요. 자료 기준 {DATA_DATE}

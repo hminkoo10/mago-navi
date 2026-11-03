@@ -3507,6 +3507,142 @@ li:first-child > .hit {
 .acct-item:focus-visible {
   background: var(--bg-soft);
 }
+
+/* ---- 머리글 학생 고르기 (학원 사람) ---- */
+.stu {
+  position: relative;
+}
+.stu-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 220px;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg);
+  font-size: 14.5px;
+  cursor: pointer;
+}
+.stu-btn:hover,
+.stu-btn[aria-expanded='true'] {
+  border-color: var(--line-strong);
+  background: var(--bg-soft);
+}
+.stu-btn-label {
+  color: var(--ink-3);
+  font-size: 13px;
+}
+.stu-btn-name {
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.stu-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  width: 360px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--bg);
+  box-shadow: var(--shadow-lg);
+}
+.stu-list,
+.stu-add {
+  display: grid;
+  gap: 10px;
+}
+.stu-tools {
+  display: grid;
+  gap: 8px;
+}
+.stu-tools .seg {
+  justify-self: start;
+  margin-bottom: 0;
+}
+.stu-search {
+  height: 42px;
+}
+.stu-rows {
+  display: grid;
+  gap: 2px;
+  max-height: min(360px, 50vh);
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+.stu-row {
+  display: grid;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  font-size: 15px;
+  text-align: left;
+  cursor: pointer;
+}
+.stu-row .muted {
+  font-size: 13px;
+}
+.stu-row:hover,
+.stu-row:focus-visible {
+  background: var(--bg-soft);
+}
+.stu-row.is-on {
+  background: var(--primary-soft);
+}
+.stu-empty {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  padding: 8px 2px;
+  font-size: 14.5px;
+}
+.stu-add-btn {
+  justify-self: start;
+}
+.stu-add-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.stu-gate {
+  display: grid;
+  gap: 4px;
+  max-width: 560px;
+  padding-top: 48px;
+  padding-bottom: 40px;
+}
+.stu-bar {
+  padding-top: 16px;
+}
+.stu-bar .callout {
+  margin-bottom: 0;
+}
+@media (max-width: 640px) {
+  /* 좁은 화면 머리글에 자리가 모자라 '학생' 글자와 '시작하기'(메뉴에도 있음)는 뺀다 */
+  .stu-btn {
+    max-width: 120px;
+  }
+  .stu-btn-label,
+  .head-right .stu + .btn {
+    display: none;
+  }
+  .stu-menu {
+    position: fixed;
+    top: 64px;
+    right: 16px;
+    left: 16px;
+    width: auto;
+  }
+}
 button.mobile-link {
   border-top: 0;
   border-right: 0;
