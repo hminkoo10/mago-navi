@@ -6,6 +6,13 @@ import { StudentList } from './StudentPicker'
 /** 학원 사람이 학생을 고르기 전: 설계 화면 자리에 학생 목록을 보인다 */
 export function StudentGate() {
   const { user, students } = useApp()
+  if (user?.magoRole === 'student') return (
+    <div className="wrap stu-gate" role={students.error ? 'alert' : 'status'}>
+      <h1 className="page-title">내 설계를 여는 중이에요</h1>
+      <p className="page-sub">{students.error || '내 학생 정보를 확인하고 있어요.'}</p>
+      {students.error && <button type="button" className="btn" onClick={() => void students.reload()}>다시 받기</button>}
+    </div>
+  )
   return (
     <div className="wrap stu-gate">
       <h1 className="page-title">어느 학생의 설계를 열까요?</h1>
@@ -22,10 +29,10 @@ export function StudentGate() {
 
 /** 지금 연 학생을 누가 지웠을 때: 설계는 보기만 하고, 되살리면 다시 고칠 수 있다 */
 export function DeletedStudentBar() {
-  const { students, notify } = useApp()
+  const { students, notify, user } = useApp()
   const [busy, setBusy] = useState(false)
   const s = students.current
-  if (!s?.deletedAt) return null
+  if (!s?.deletedAt || user?.magoRole === 'student') return null
 
   const restore = async () => {
     setBusy(true)

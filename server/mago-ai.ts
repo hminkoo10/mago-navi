@@ -41,12 +41,24 @@ export interface AiPick {
 
 /** 내 계정 화면에 보이는 AI 상태 */
 export interface AiStatus {
-  source: AiSource
+  source: AiSource | 'teacher'
   academy: { state: AcademyState; provider: string; model: string }
   /** 학원 AI를 못 쓸 때 운영자 서버 AI로 넘어가는지 */
   fallback: boolean
   /** 지금 AI 기능을 쓸 수 있는지 (못 쓰면 화면이 키 등록 안내) */
   ready: boolean
+  /** 학생에게 보이는 안내 (키 등록 화면으로 보내지 않음) */
+  message?: string
+}
+
+const TEACHER_KEY_NEEDED = '담당 선생님이 AI 키를 등록하지 않았어요'
+
+const STUDENT_ACADEMY_TEXT: Record<Exclude<AcademyState, 'ready'>, string> = {
+  none: '학원에 아직 학원 AI가 없어요. 선생님께 알려 주세요.',
+  lan: '학원 AI가 학원 안 주소에 있어 웹에서는 부를 수 없어요. 선생님께 알려 주세요.',
+  model: '학원 AI에 모델 이름이 없어 부를 수 없어요. 선생님께 알려 주세요.',
+  'no-academy': '학원 AI를 확인하지 못했어요. 선생님께 알려 주세요.',
+  offline: '통합 클라우드에 연결하지 못해 학원 AI를 쓸 수 없어요. 잠시 후 다시 해 주세요.',
 }
 
 const ACADEMY_TEXT: Record<Exclude<AcademyState, 'ready'>, string> = {
@@ -88,6 +100,18 @@ export function relayConfig(cfg: MagoConfig, ai: AcademyAiInfo, token: string, g
 /** MAGO_SERVER_AI_FALLBACK=1일 때만 운영자 서버 AI */
 const fallbackAi = (call: Call) => (call.ctx.env.MAGO_SERVER_AI_FALLBACK === '1' ? currentAi(call) : null)
 
+/** 담당 선생님의 키는 서버에서만 꺼내 쓴다. 담당이 바뀌면 다음 요청부터 새 담당의 키를 쓴다. */
+function teacherKey(call: Call): string | null {
+  const { accounts, mago, userKeys } = call.services
+  const p = call.user ? mago.profile(call.user.id) : null
+  const uid = p?.student?.teacherUid
+  const teacher = uid ? accounts.bySub(`mago:${uid}`) : null
+  if (!teacher || teacher.disabled) return null
+  const profile = mago.profile(teacher.id)
+  if (!p?.academyId || profile?.academyId !== p.academyId || !['teacher', 'director', 'admin'].includes(profile.magoRole)) return null
+  return userKeys.key(teacher.id)
+}
+
 export function academyAi(fetchImpl: typeof fetch) {
   // 학원마다 60초 기억 (학원 AI가 없다는 것도)
   const cache = new LruCache<{ ai: AcademyAiInfo | null }>(500, 60_000)
@@ -122,9 +146,25 @@ export function academyAi(fetchImpl: typeof fetch) {
    * 고른 것이 '내 키'면 내 키만, '학원 AI'면 학원 AI → 내 키 → 운영자 서버 AI(켜 두었을 때) 순서
    */
   const pick = async (call: Call, what: string): Promise<AiPick | null> => {
-    if (!magoConfig(call.ctx.env)) return null
+    if (!magoConfig(call.ctx.env)) {
+      if (call.user && call.services.mago.profile(call.user.id)?.magoRole === 'student')
+        throw new HttpError(503, '통합 클라우드 연결 설정을 확인하지 못했어요. 선생님께 알려 주세요.')
+      return null
+    }
     const user = requireUser(call)
     const { userKeys, settings, mago } = call.services
+    const profile = mago.profile(user.id)
+    if (profile?.magoRole === 'student') {
+      if (profile.aiMode === 'teacher') {
+        const key = teacherKey(call)
+        if (!key) throw new HttpError(503, TEACHER_KEY_NEEDED)
+        return { cfg: { ...userGeminiConfig(key, settings.get().userAiModel), name: '담당 선생님 AI' }, own: true, academy: null }
+      }
+      const a = await academy(call)
+      if (a.state === 'gone') throw new HttpError(401, '로그인이 끝났어요. 다시 로그인해 주세요.')
+      if (a.cfg && a.academyId) return { cfg: a.cfg, own: false, academy: a.academyId }
+      throw new HttpError(a.state === 'offline' ? 502 : 503, STUDENT_ACADEMY_TEXT[a.state === 'ready' ? 'none' : a.state])
+    }
     const key = userKeys.key(user.id)
     const own: AiPick | null = key ? { cfg: userGeminiConfig(key, settings.get().userAiModel), own: true, academy: null } : null
     if (mago.profile(user.id)?.aiSource === 'own') {
@@ -143,7 +183,23 @@ export function academyAi(fetchImpl: typeof fetch) {
   /** 내 계정 화면용 AI 상태. 통합 클라우드 설정이 없거나 로그인 전이면 null */
   const status = async (call: Call): Promise<AiStatus | null> => {
     if (!magoConfig(call.ctx.env) || !call.user) return null
-    const source = call.services.mago.profile(call.user.id)?.aiSource ?? 'academy'
+    const profile = call.services.mago.profile(call.user.id)
+    if (profile?.magoRole === 'student') {
+      if (profile.aiMode === 'teacher') {
+        const ready = !!teacherKey(call)
+        return {
+          source: 'teacher', academy: { state: 'none', provider: '', model: '' }, fallback: false, ready,
+          message: ready ? '' : TEACHER_KEY_NEEDED,
+        }
+      }
+      const a = await academy(call)
+      const state = a.state === 'gone' ? 'offline' : a.state
+      return {
+        source: 'academy', academy: { state, provider: a.ai?.provider ?? '', model: a.ai?.model ?? '' }, fallback: false, ready: !!a.cfg,
+        message: state === 'ready' ? '' : STUDENT_ACADEMY_TEXT[state],
+      }
+    }
+    const source = profile?.aiSource ?? 'academy'
     const a = await academy(call)
     const own = !!call.services.userKeys.key(call.user.id)
     const fallback = !!fallbackAi(call)
@@ -167,7 +223,13 @@ export function academyAi(fetchImpl: typeof fetch) {
     }
     if ((code === 404 && (kind === 'no_academy_ai' || kind === 'no_academy')) || (code === 403 && kind === 'private_target')) {
       cache.delete(String(academyId))
+      if (call.user && call.services.mago.profile(call.user.id)?.magoRole === 'student')
+        return new AiError(503, STUDENT_ACADEMY_TEXT[kind === 'private_target' ? 'lan' : 'none'], e.detail)
       return new AiError(503, kind === 'private_target' ? `학원 AI를 부르지 못했어요. ${ACADEMY_TEXT.lan}` : `학원 AI가 없어졌어요. ${ACADEMY_TEXT.none}`, e.detail)
+    }
+    if (code === 403 && kind === 'student_ai_teacher') {
+      if (call.token) call.services.mago.checked(call.token, null)
+      return new AiError(409, '담당 선생님의 AI 키를 쓰도록 설정이 바뀌었어요. 화면을 새로 고쳐 주세요.', e.detail)
     }
     if (code === 429) return new AiError(429, '학원 AI 요청이 너무 많아요. 잠시 후 다시 해 주세요.', e.detail)
     if (code === 401 || code === 403 || kind === 'API_KEY_INVALID')

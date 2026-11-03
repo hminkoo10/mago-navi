@@ -7,14 +7,25 @@ import { openKey, sealKey } from './ai-providers'
 /** AI 기능에 쓸 것: academy 학원 AI(기본), own 내 Gemini API 키 */
 export type AiSource = 'academy' | 'own'
 
+export type StudentAiMode = 'academy' | 'teacher'
+
+export interface CloudStudentInfo {
+  id: string
+  name: string
+  teacherUid: string | null
+  teacherName: string
+}
+
 export interface MagoProfile {
   /** 통합 클라우드 계정 ID. 예전 계정이면 빈 값 */
   cloudId: string
   academyId: number | null
   academyName: string
-  /** 통합 클라우드 역할 (admin·director·teacher) */
+  /** 통합 클라우드 역할 (admin·director·teacher·student) */
   magoRole: string
   aiSource: AiSource
+  student: CloudStudentInfo | null
+  aiMode: StudentAiMode
 }
 
 /** 이만큼 지나면 클라우드에 다시 확인 (이름·역할·학원, 클라우드 세션이 살아 있는지) */
@@ -36,6 +47,11 @@ export class MagoStore {
     if (!users.has('academy_name')) db.exec("alter table users add column academy_name text not null default ''")
     if (!users.has('mago_role')) db.exec("alter table users add column mago_role text not null default ''")
     if (!users.has('ai_source')) db.exec("alter table users add column ai_source text not null default 'academy'")
+    if (!users.has('student_id')) db.exec('alter table users add column student_id text')
+    if (!users.has('student_name')) db.exec("alter table users add column student_name text not null default ''")
+    if (!users.has('teacher_uid')) db.exec('alter table users add column teacher_uid text')
+    if (!users.has('teacher_name')) db.exec("alter table users add column teacher_name text not null default ''")
+    if (!users.has('student_ai_mode')) db.exec("alter table users add column student_ai_mode text not null default 'academy'")
     // 클라우드 세션 토큰은 사용자 Gemini 키와 같은 비밀값(AI_KEY_SECRET)으로 암호화해 둔다
     const sessions = cols('sessions')
     if (!sessions.has('cloud_token')) db.exec('alter table sessions add column cloud_token text')
@@ -43,8 +59,9 @@ export class MagoStore {
   }
 
   profile(userId: number): MagoProfile | null {
-    const r = this.db.prepare('select google_sub, academy_id, academy_name, mago_role, ai_source from users where id = ?').get(userId) as
-      { google_sub: string; academy_id: number | null; academy_name: string; mago_role: string; ai_source: string } | undefined
+    const r = this.db.prepare('select google_sub, academy_id, academy_name, mago_role, ai_source, student_id, student_name, teacher_uid, teacher_name, student_ai_mode from users where id = ?').get(userId) as
+      { google_sub: string; academy_id: number | null; academy_name: string; mago_role: string; ai_source: string;
+        student_id: string | null; student_name: string; teacher_uid: string | null; teacher_name: string; student_ai_mode: string } | undefined
     if (!r) return null
     return {
       cloudId: r.google_sub.startsWith('mago:') ? r.google_sub.slice(5) : '',
@@ -52,11 +69,17 @@ export class MagoStore {
       academyName: r.academy_name,
       magoRole: r.mago_role,
       aiSource: r.ai_source === 'own' ? 'own' : 'academy',
+      student: r.mago_role === 'student' && r.student_id
+        ? { id: r.student_id, name: r.student_name, teacherUid: r.teacher_uid, teacherName: r.teacher_name }
+        : null,
+      aiMode: r.student_ai_mode === 'teacher' ? 'teacher' : 'academy',
     }
   }
 
-  setProfile(userId: number, p: { academyId: number | null; academyName: string; magoRole: string }): void {
-    this.db.prepare('update users set academy_id = ?, academy_name = ?, mago_role = ? where id = ?').run(p.academyId, p.academyName, p.magoRole, userId)
+  setProfile(userId: number, p: { academyId: number | null; academyName: string; magoRole: string; student?: CloudStudentInfo | null; aiMode?: StudentAiMode }): void {
+    const student = p.magoRole === 'student' ? p.student : null
+    this.db.prepare('update users set academy_id = ?, academy_name = ?, mago_role = ?, student_id = ?, student_name = ?, teacher_uid = ?, teacher_name = ?, student_ai_mode = ? where id = ?')
+      .run(p.academyId, p.academyName, p.magoRole, student?.id ?? null, student?.name ?? '', student?.teacherUid ?? null, student?.teacherName ?? '', p.aiMode ?? 'academy', userId)
   }
 
   setAiSource(userId: number, source: AiSource): void {

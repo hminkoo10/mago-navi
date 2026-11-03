@@ -17,7 +17,7 @@ const SYNC_TEXT: Record<SyncState, string> = {
 }
 
 /** 통합 클라우드 역할 */
-const MAGO_ROLE_TEXT: Record<string, string> = { admin: '통합 클라우드 운영자', director: '원장', teacher: '선생님' }
+const MAGO_ROLE_TEXT: Record<string, string> = { admin: '통합 클라우드 운영자', director: '원장', teacher: '선생님', student: '학생' }
 
 const PROVIDER_TEXT: Record<string, string> = { gemini: 'Gemini', openai: 'OpenAI 호환', anthropic: 'Claude' }
 
@@ -45,7 +45,7 @@ function AiChoiceCard() {
   const { user, setUser, notify } = useApp()
   const [busy, setBusy] = useState(false)
   const ai = user?.ai
-  if (!user || !ai) return null
+  if (!user || !ai || user.magoRole === 'student') return null
   const { academy } = ai
   const provider = PROVIDER_TEXT[academy.provider] ?? academy.provider
   const which = provider ? `학원 AI: ${provider}${academy.model ? ` (${academy.model})` : ''}. ` : ''
@@ -121,7 +121,7 @@ function AiKeyCard() {
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  if (!user || (!features.userKey && !user.aiKey)) return null
+  if (!user || user.magoRole === 'student' || (!features.userKey && !user.aiKey)) return null
   const key = user.aiKey ?? null
   const mago = !!user.ai
 
@@ -281,7 +281,7 @@ export function AccountPage() {
           <h2 className="card-title">{students.active ? (student ? `${student.name} 학생 설계` : '학생 설계') : '저장한 설계'}</h2>
           <p className="card-sub">
             {noStudent
-              ? '학생마다 설계를 따로 저장해요. 머리글의 학생에서 학생을 고르면 그 학생 설계를 보여 줘요.'
+              ? user.magoRole === 'student' ? '내 학생 정보를 확인하고 있어요.' : '학생마다 설계를 따로 저장해요. 머리글의 학생에서 학생을 고르면 그 학생 설계를 보여 줘요.'
               : store.sync === 'saved' && store.savedAt
                 ? `${syncText} · ${dateTime(store.savedAt)}`
                 : store.sync === 'rejected' && store.syncMessage
@@ -321,9 +321,9 @@ export function AccountPage() {
               </button>
             )}
             <Link to={store.school ? '/plan' : '/start'} className="btn">
-              {noStudent ? '학생 고르기' : store.school ? (student ? '과목 설계 보기' : '내 과목 설계 보기') : '시작하기'}
+              {noStudent ? user.magoRole === 'student' ? '내 설계 보기' : '학생 고르기' : store.school ? (student ? '과목 설계 보기' : '내 과목 설계 보기') : '시작하기'}
             </Link>
-            {isAdminRole(user.role) && (
+            {user.magoRole !== 'student' && isAdminRole(user.role) && (
               <Link to="/admin" className="btn">
                 관리 화면
               </Link>
@@ -334,6 +334,14 @@ export function AccountPage() {
         <AiChoiceCard />
 
         <AiKeyCard />
+
+        {user.magoRole === 'student' && (
+          <section className="panel-card">
+            <h2 className="card-title">AI 기능</h2>
+            <p className="card-sub">{user.aiMode === 'teacher' ? '담당 선생님의 AI 키로 이용해요.' : '학원 AI로 이용해요.'} AI 설정은 선생님이 정해요.</p>
+            {user.ai?.message && <p className="callout is-warn">{user.ai.message}</p>}
+          </section>
+        )}
 
         <section className="panel-card">
           <h2 className="card-title">로그아웃</h2>

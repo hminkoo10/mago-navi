@@ -311,8 +311,12 @@ export function createApi(options: ApiOptions = {}) {
   /** AI 기능을 쓸 수 있는지. 사용자 키 모드·통합 클라우드(학원 AI·내 키)면 서버 AI가 없어도 됨 */
   const aiOn = (call: Call) => !!magoConfig(call.ctx.env) || call.services.settings.get().userAiKey || currentAi(call) !== null
   /** 사용자 키·학원 AI 오류는 본인이 할 일을 알려 주는 문구로 */
-  const ownError = (call: Call, e: unknown, ai: AiPick) =>
-    ai.academy !== null ? magoAi.failed(call, e, ai.academy) : ai.own && e instanceof AiError ? ownKeyError(e) : e
+  const ownError = (call: Call, e: unknown, ai: AiPick) => {
+    if (ai.academy !== null) return magoAi.failed(call, e, ai.academy)
+    if (ai.own && e instanceof AiError && call.user && call.services.mago.profile(call.user.id)?.magoRole === 'student')
+      return new AiError(e.status, '담당 선생님의 AI 키로 요청하지 못했어요. 잠시 후 다시 해 보고, 계속 안 되면 선생님께 알려 주세요.', e.detail)
+    return ai.own && e instanceof AiError ? ownKeyError(e) : e
+  }
   /** 기록용 대상·입력 요약, 사용자 키·학원 AI를 썼는지 */
   type Seen = { target: string; input: string; own: boolean; academy: boolean }
 
@@ -812,7 +816,8 @@ export function createApi(options: ApiOptions = {}) {
         const p = call.services.mago.profile(user.id)
         if (!p?.cloudId) return {}
         const academy = p.academyId ? { id: p.academyId, name: p.academyName } : null
-        return { cloudId: p.cloudId, magoRole: p.magoRole, academy, ai: await magoAi.status(call) }
+        return { cloudId: p.cloudId, magoRole: p.magoRole, academy, ai: await magoAi.status(call),
+          ...(p.magoRole === 'student' ? { student: p.student, aiMode: p.aiMode, aiKey: null } : {}) }
       },
     }),
     ...magoRoutes({ fetch: fetchImpl }),
@@ -839,6 +844,10 @@ export function createApi(options: ApiOptions = {}) {
       const user = token ? await magoSessionUser(s, token, ctx.env, fetchImpl) : null
       // PUBLIC_ROUTES 밖은 모두 로그인 필요
       if (!user && !PUBLIC_ROUTES.has(key)) return json({ error: '로그인이 필요해요.' }, 401)
+      if (user && s.mago.profile(user.id)?.magoRole === 'student' && (
+        url.pathname.startsWith('/api/admin/') || url.pathname.startsWith('/api/me/ai-key') ||
+        key === 'POST /api/me/ai' || url.pathname === '/api/academy/members' || url.pathname === '/api/me/data'
+      )) return json({ error: '학생 계정으로는 쓸 수 없는 기능이에요.', code: 'student_forbidden' }, 403)
       return await route({ req, url, ctx, services: s, user, token: user ? token : null })
     } catch (e) {
       if (e instanceof HttpError || e instanceof AiError) return json({ error: e.message }, e.status)

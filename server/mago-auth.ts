@@ -2,6 +2,7 @@ import { publicUser, safeNext } from './account-api'
 import { hashOf, type Role, type User } from './accounts'
 import { cookieName, json, readCookie, redirect, sessionCookie, shortCookie } from './http'
 import { HttpError, RateLimiter, readJson } from './limits'
+import type { CloudStudentInfo, StudentAiMode } from './mago-store'
 import type { Call, Route, Services } from './services'
 
 export type { AiSource } from './mago-store'
@@ -37,8 +38,8 @@ export function magoConfig(env: Env): MagoConfig | null {
 
 // ---- 클라우드 API ----
 
-/** 통합 클라우드 역할: admin 운영자, director 원장, teacher 선생님 */
-export type CloudRole = 'admin' | 'director' | 'teacher'
+/** 통합 클라우드 역할: admin 운영자, director 원장, teacher 선생님, student 학생 */
+export type CloudRole = 'admin' | 'director' | 'teacher' | 'student'
 
 export interface CloudUser {
   /** 통합 클라우드 계정 ID (바뀌지 않음) */
@@ -48,6 +49,8 @@ export interface CloudUser {
   role: CloudRole
   roleLabel: string
   academy: { id: number; name: string } | null
+  student: CloudStudentInfo | null
+  aiMode: StudentAiMode
 }
 
 /** 클라우드 오류. status 0이면 연결하지 못함. message는 클라우드가 준 한국어 안내 */
@@ -74,16 +77,23 @@ const text = (x: unknown, max: number) =>
     : ''
 
 /** 클라우드가 준 사용자 정보 검사. 모양이 틀리면 null */
-export function cloudUser(raw: unknown): CloudUser | null {
+export function cloudUser(raw: unknown, details: Record<string, unknown> = {}): CloudUser | null {
   if (!raw || typeof raw !== 'object') return null
   const r = raw as Record<string, unknown>
   const id = typeof r.id === 'string' && /^[\w-]{1,64}$/.test(r.id) ? r.id : ''
-  const role = r.role === 'admin' || r.role === 'director' || r.role === 'teacher' ? r.role : null
+  const role = r.role === 'admin' || r.role === 'director' || r.role === 'teacher' || r.role === 'student' ? r.role : null
   if (!id || !role) return null
   const a = r.academy && typeof r.academy === 'object' ? (r.academy as Record<string, unknown>) : null
   const academy = a && typeof a.id === 'number' && Number.isInteger(a.id) && a.id > 0 ? { id: a.id, name: text(a.name, 60) } : null
   const username = text(r.username, 60)
-  return { id, username, name: text(r.name, 40) || username, role, roleLabel: text(r.roleLabel, 20), academy }
+  const rawStudent = r.student ?? details.student
+  const st = rawStudent && typeof rawStudent === 'object' ? rawStudent as Record<string, unknown> : null
+  const student = role === 'student' && st && typeof st.id === 'string' && /^[A-Za-z0-9-]{1,64}$/.test(st.id)
+    ? { id: st.id, name: text(st.name, 40), teacherUid: typeof st.teacherUid === 'string' && /^[\w-]{1,64}$/.test(st.teacherUid) ? st.teacherUid : null, teacherName: text(st.teacherName, 40) }
+    : null
+  const aiMode = r.aiMode ?? details.aiMode
+  if (role === 'student' && (!academy || !student || (aiMode !== 'academy' && aiMode !== 'teacher'))) return null
+  return { id, username, name: text(r.name, 40) || username, role, roleLabel: text(r.roleLabel, 20), academy, student, aiMode: aiMode === 'teacher' ? 'teacher' : 'academy' }
 }
 
 /**
@@ -163,7 +173,7 @@ export function upsertUser(s: Services, u: CloudUser): { user: User; created: bo
     accounts.setName(user.id, u.name)
     if (user.role !== role) accounts.setRole(user.id, role)
   }
-  s.mago.setProfile(user.id, { academyId: u.academy?.id ?? null, academyName: u.academy?.name ?? '', magoRole: u.role })
+  s.mago.setProfile(user.id, { academyId: u.academy?.id ?? null, academyName: u.academy?.name ?? '', magoRole: u.role, student: u.student, aiMode: u.aiMode })
   return { user: accounts.byId(user.id)!, created }
 }
 
@@ -193,17 +203,16 @@ async function refresh(s: Services, cfg: MagoConfig, token: string, user: User, 
     return null
   }
   try {
-    const me = cloudUser((await cloudCall(cfg, '/api/me', { token: cloud, timeoutMs: 5_000 }, fetchImpl)).user)
-    if (me) {
-      // 다른 사람의 정보가 오면 이 세션을 믿지 않는다
-      if (s.mago.profile(user.id)?.cloudId !== me.id) {
-        s.accounts.revokeSession(token)
-        return null
-      }
-      upsertUser(s, me)
+    const data = await cloudCall(cfg, '/api/me', { token: cloud, timeoutMs: 5_000 }, fetchImpl)
+    const me = cloudUser(data.user, data)
+    // 다른 사람의 정보나 잘못된 학생 정보가 오면 이 세션을 믿지 않는다
+    if (!me || s.mago.profile(user.id)?.cloudId !== me.id) {
+      s.accounts.revokeSession(token)
+      return null
     }
+    upsertUser(s, me)
   } catch (e) {
-    if (e instanceof CloudError && e.status === 401) {
+    if (e instanceof CloudError && (e.status === 401 || (e.status === 403 && e.code === 'account_suspended'))) {
       s.accounts.revokeSession(token)
       return null
     }
@@ -238,7 +247,7 @@ export async function cloudLogout(call: Call, fetchImpl: typeof fetch): Promise<
 // ---- 로그인 경로 ----
 
 /** 로그인을 마치지 못한 까닭 (로그인 화면의 ?error=) */
-type Fail = 'expired' | 'failed' | 'denied' | 'disabled' | 'unavailable' | 'closed'
+type Fail = 'expired' | 'failed' | 'denied' | 'disabled' | 'unavailable' | 'closed' | 'student-web-only'
 
 /** FLOW: 로그인을 시작한 브라우저인지 맞춰 보는 쿠키 (Google 로그인 때와 같은 이름) */
 const FLOW_COOKIE = 'gwamok_oauth'
@@ -281,6 +290,11 @@ export function magoRoutes(deps: { fetch: typeof fetch }): Record<string, Route>
       const data = await cloudCall(cfg, '/api/sso/token', { method: 'POST', body: { appId: cfg.appId, secret: cfg.secret, code }, timeoutMs: 10_000 }, deps.fetch)
       token = typeof data.token === 'string' && /^[\w.~+/=-]{20,400}$/.test(data.token) ? data.token : ''
       cloud = cloudUser(data.user)
+      if (token && data.user && typeof data.user === 'object' && (data.user as { role?: unknown }).role === 'student') {
+        const me = await cloudCall(cfg, '/api/me', { token, timeoutMs: 5_000 }, deps.fetch)
+        cloud = cloudUser(me.user, me)
+        if (cloud?.id !== (data.user as { id?: unknown }).id || cloud?.role !== 'student') cloud = null
+      }
       if (!token || !cloud) throw new CloudError(502, 'bad_response', '')
     } catch (e) {
       const why = failOf(e)
@@ -289,6 +303,10 @@ export function magoRoutes(deps: { fetch: typeof fetch }): Record<string, Route>
       return why
     }
     const { accounts, settings } = call.services
+    if (cloud.role === 'student' && call.url.pathname === '/api/auth/mago/code') {
+      void dropCloud(cfg, token, deps.fetch)
+      return 'student-web-only'
+    }
     const before = accounts.bySub(`mago:${cloud.id}`)
     // 가입을 막아 두면 처음 오는 계정은 받지 않는다 (통합 클라우드 운영자는 예외). 받은 클라우드 세션은 바로 끝냄
     if ((!before && !settings.get().signupOpen && cloud.role !== 'admin') || before?.disabled) {
@@ -367,4 +385,5 @@ const PC_FAIL: Record<Fail, [number, string]> = {
   disabled: [403, '이용이 정지된 계정이에요. 원장님이나 운영자에게 문의해 주세요.'],
   unavailable: [503, '지금은 로그인을 쓸 수 없어요.'],
   closed: [403, '지금은 처음 오는 계정을 받지 않아요.'],
+  'student-web-only': [403, '학생 계정은 웹에서만 써요. 브라우저에서 마고 과목내비를 열어 주세요.'],
 }

@@ -312,10 +312,10 @@ function Workspace({ user, setUser, authReady, features, down, retry, notify, st
               {r.page === 'universities' && <UniversitiesPage />}
               {r.page === 'university' && <UniversityPage id={r.id} />}
               {r.page === 'help' && <HelpPage />}
-              {r.page === 'geminiKey' && <GeminiKeyPage />}
+              {r.page === 'geminiKey' && (user?.magoRole === 'student' ? <NotFoundPage /> : <GeminiKeyPage />)}
               {r.page === 'login' && <LoginPage />}
               {r.page === 'account' && <AccountPage />}
-              {r.page === 'admin' && <AdminPage />}
+              {r.page === 'admin' && (user?.magoRole === 'student' ? <NotFoundPage /> : <AdminPage />)}
               {r.page === 'notfound' && <NotFoundPage />}
             </>
           )}

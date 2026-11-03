@@ -74,6 +74,15 @@ export function studentRoutes(deps: { fetch: typeof fetch }) {
 
   /** 학원 명단 (30초 기억). 받을 때마다 완전히 지운 학생의 설계를 지운다 */
   const roster = async (call: Call, m: Member, fresh = false): Promise<Roster> => {
+    const profile = call.services.mago.profile(m.user.id)
+    if (profile?.magoRole === 'student') {
+      const s = profile.student
+      if (!s) throw new HttpError(403, '내 학생 정보를 확인하지 못했어요. 다시 로그인해 주세요.')
+      return rosterOf({ students: [{
+        id: s.id, name: s.name, school: '', grade: '', memo: '', rev: 0, deletedAt: null,
+        teacher: s.teacherUid ? { id: s.teacherUid, name: s.teacherName } : null,
+      }], purged: [] })
+    }
     const key = String(m.academyId)
     const hit = fresh ? undefined : rosters.get(key)
     if (hit) return hit
@@ -91,6 +100,8 @@ export function studentRoutes(deps: { fetch: typeof fetch }) {
 
   /** 설계를 열 학생. 명단에 없으면(방금 추가했을 수 있어) 명단을 한 번 새로 받는다. 없거나 완전히 지웠으면 404 */
   const studentOf = async (call: Call, m: Member, sid: string): Promise<{ name: string; deleted: boolean }> => {
+    const profile = call.services.mago.profile(m.user.id)
+    if (profile?.magoRole === 'student' && profile.student?.id !== sid) throw new HttpError(403, '내 학생 설계만 보고 고칠 수 있어요.')
     let r = await roster(call, m)
     let s = r.students.find((x) => x.id === sid)
     if (!s && !r.purged.includes(sid) && Date.now() - r.at > 2_000) {
@@ -114,6 +125,7 @@ export function studentRoutes(deps: { fetch: typeof fetch }) {
   /** 명단 고치기: 클라우드에 그대로 보내고, 이 학원 명단 기억은 버린다 */
   const write = async (call: Call, method: string, path: string): Promise<Response> => {
     const m = member(call)
+    if (call.services.mago.profile(m.user.id)?.magoRole === 'student') throw new HttpError(403, '학생 계정으로는 명단을 고칠 수 없어요.')
     let body: Record<string, unknown> | undefined
     if (method === 'PATCH' || path === '/api/students') {
       const raw = await readJson(call.req, 4_000)

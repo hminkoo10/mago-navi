@@ -121,12 +121,13 @@ export type AiSource = 'academy' | 'own'
 
 /** AI 기능에 쓸 AI (통합 클라우드 로그인일 때만) */
 export interface AiStatus {
-  source: AiSource
+  source: AiSource | 'teacher'
   academy: { state: AcademyAiState; provider: string; model: string }
   /** 학원 AI를 못 쓸 때 운영자 서버 AI로 넘어가는지 */
   fallback: boolean
   /** 지금 AI 기능을 쓸 수 있는지 (못 쓰면 키 등록 안내) */
   ready: boolean
+  message?: string
 }
 
 export interface Me {
@@ -140,8 +141,10 @@ export interface Me {
   aiKey?: AiKeyInfo | null
   /** 통합 클라우드 계정 ID */
   cloudId?: string
-  /** 통합 클라우드 역할 (admin·director·teacher) */
+  /** 통합 클라우드 역할 (admin·director·teacher·student) */
   magoRole?: string
+  student?: { id: string; name: string; teacherUid: string | null; teacherName: string } | null
+  aiMode?: 'academy' | 'teacher'
   /** 속한 학원. 없으면 학생 명단 없이 내 계정에 설계 하나 */
   academy?: { id: number; name: string } | null
   ai?: AiStatus | null

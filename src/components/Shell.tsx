@@ -65,13 +65,13 @@ function AccountMenu() {
             <strong>{user.name || user.email}</strong>
             <span>
               {user.name ? `${user.email} · ` : ''}
-              {ROLE_TEXT[user.role]}
+              {user.magoRole === 'student' ? '학생' : ROLE_TEXT[user.role]}
             </span>
           </div>
           <Link to="/account" role="menuitem" className="acct-item">
             내 계정
           </Link>
-          {isAdminRole(user.role) && (
+          {user.magoRole !== 'student' && isAdminRole(user.role) && (
             <Link to="/admin" role="menuitem" className="acct-item">
               관리
             </Link>
@@ -167,7 +167,7 @@ export function Header({ section }: { section: Section }) {
                 <Link to="/account" className={`mobile-link${section === 'account' ? ' is-on' : ''}`}>
                   내 계정 <span className="muted">{user.email}</span>
                 </Link>
-                {isAdminRole(user.role) && (
+                {user.magoRole !== 'student' && isAdminRole(user.role) && (
                   <Link to="/admin" className={`mobile-link${section === 'admin' ? ' is-on' : ''}`}>
                     관리
                   </Link>
@@ -273,7 +273,7 @@ export function Footer() {
           <Link to="/universities">대학 권장과목</Link>
           <Link to="/admissions">전형 찾기</Link>
           <Link to="/updates">대입 정보 소식</Link>
-          {user && isAdminRole(user.role) && <Link to="/admin">관리</Link>}
+          {user && user.magoRole !== 'student' && isAdminRole(user.role) && <Link to="/admin">관리</Link>}
           <a href={SOURCE_URL} target="_blank" rel="noopener noreferrer">
             소스 코드(GitHub)
           </a>

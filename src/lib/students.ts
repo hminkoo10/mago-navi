@@ -77,16 +77,25 @@ export interface Students {
  * 연 학생을 그사이 누가 지우면 열어 둔 채 보기만 하게 하고 (App), 완전히 지워졌으면 닫는다
  */
 export function useStudents(user: Me | null): Students {
-  const who = user?.academy ? user.id : null
+  const studentRole = user?.magoRole === 'student'
+  const who = user && (user.academy || studentRole) ? user.id : null
   const cloudId = user?.cloudId ?? ''
+  const self = useMemo<Student | null>(() => {
+    const s = studentRole ? user?.student : null
+    return s ? {
+      id: s.id, name: s.name, school: '', grade: '', memo: '', rev: 0, deletedAt: null,
+      teacher: s.teacherUid ? { id: s.teacherUid, name: s.teacherName } : null,
+    } : null
+  }, [studentRole, user?.student])
   const [list, setList] = useState<Student[] | null>(null)
   const [error, setError] = useState('')
   const [picked, setPicked] = useState<string | null>(null)
   const [purgeDays, setPurgeDays] = useState(30)
   // 계정이 바뀌면 처음부터
-  const [owner, setOwner] = useState<number | null>(null)
-  if (owner !== who) {
-    setOwner(who)
+  const identity = who === null ? '' : `${who}:${studentRole ? self?.id ?? 'student' : 'staff'}`
+  const [owner, setOwner] = useState(identity)
+  if (owner !== identity) {
+    setOwner(identity)
     setList(null)
     setError('')
     setPicked(null)
@@ -107,6 +116,7 @@ export function useStudents(user: Me | null): Students {
         setPurgeDays(r.purgeDays || 30)
         setError('')
         setPicked((p) => {
+          if (studentRole) return r.students[0]?.id ?? null
           const id = first ? readLast(who) : p
           const s = id ? r.students.find((x) => x.id === id) : undefined
           return s && !(first && s.deletedAt) ? s.id : null
@@ -117,7 +127,7 @@ export function useStudents(user: Me | null): Students {
         setError(e instanceof ApiError ? e.message : '학생 명단을 받지 못했어요.')
       },
     )
-  }, [who])
+  }, [who, studentRole])
 
   useEffect(() => {
     void reload()
@@ -134,32 +144,34 @@ export function useStudents(user: Me | null): Students {
 
   const pick = useCallback(
     (id: string | null) => {
-      if (who === null) return
+      if (who === null || studentRole) return
       setPicked(id)
       writeLast(who, id)
     },
-    [who],
+    [who, studentRole],
   )
 
   const add = useCallback(
     async (b: { name: string; school: string; grade: string }) => {
+      if (studentRole) throw new Error('학생 계정으로는 명단을 고칠 수 없어요.')
       const { student } = await studentsApi.add({ ...b, ...(cloudId ? { teacherId: cloudId } : {}) })
       await reload()
       pick(student.id)
       return student
     },
-    [cloudId, reload, pick],
+    [cloudId, reload, pick, studentRole],
   )
 
   const restore = useCallback(
     async (id: string) => {
+      if (studentRole) throw new Error('학생 계정으로는 명단을 고칠 수 없어요.')
       await studentsApi.restore(id)
       await reload()
     },
-    [reload],
+    [reload, studentRole],
   )
 
-  const current = (picked && list?.find((s) => s.id === picked)) || null
+  const current = studentRole ? (list?.find((s) => s.id === self?.id) ?? self) : (picked && list?.find((s) => s.id === picked)) || null
   return useMemo(
     () => ({ active: who !== null, list, error, current, purgeDays, pick, reload, add, restore }),
     [who, list, error, current, purgeDays, pick, reload, add, restore],
