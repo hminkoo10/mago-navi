@@ -116,8 +116,8 @@ export function UniversitiesPage() {
                     {u.coverage !== 'official' && ` · ${COVERAGE_LABEL[u.coverage]}`}
                   </span>
                 </Link>
-                <button type="button" className={`btn btn-sm${on ? ' btn-primary' : ''}`} aria-pressed={on} onClick={() => store.toggleUniv(u.id)}>
-                  {on ? '담음' : '목표에 담기'}
+                <button type="button" className={`btn btn-sm${on ? ' btn-primary' : ''}`} onClick={() => store.toggleUniv(u.id)}>
+                  {on ? '목표에서 삭제' : '목표에 담기'}
                 </button>
               </li>
             )
@@ -140,8 +140,8 @@ export function UniversitiesPage() {
                       <strong>{u.name}</strong>
                       <span className="univ-card-meta">{u.region} · 권장과목 자료 없음</span>
                     </Link>
-                    <button type="button" className={`btn btn-sm${on ? ' btn-primary' : ''}`} aria-pressed={on} onClick={() => store.toggleUniv(u.id)}>
-                      {on ? '담음' : '목표에 담기'}
+                    <button type="button" className={`btn btn-sm${on ? ' btn-primary' : ''}`} onClick={() => store.toggleUniv(u.id)}>
+                      {on ? '목표에서 삭제' : '목표에 담기'}
                     </button>
                   </li>
                 )

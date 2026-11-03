@@ -56,8 +56,8 @@ export function UniversityPage({ id }: { id: string }) {
             {univ.region} · 학과 {units.length} · {COVERAGE_LABEL[univ.coverage]}
           </p>
         </div>
-        <button type="button" className={`btn${on ? ' btn-primary' : ''}`} aria-pressed={on} onClick={() => store.toggleUniv(univ.id)}>
-          {on ? '목표 대학에 담음' : '목표 대학에 담기'}
+        <button type="button" className={`btn${on ? ' btn-primary' : ''}`} onClick={() => store.toggleUniv(univ.id)}>
+          {on ? '목표 대학에서 삭제' : '목표 대학에 담기'}
         </button>
       </header>
 

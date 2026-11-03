@@ -206,8 +206,9 @@ a {
   width: 100%;
   max-width: 1120px;
   margin: 0 auto;
-  padding-right: 24px;
-  padding-left: 24px;
+  /* 스크롤바가 오른쪽 칸을 차지하면 내용이 창 가운데보다 왼쪽에 오므로 그 절반(--sb-half, main.tsx)만큼 오른쪽으로 */
+  padding-right: calc(24px - var(--sb-half, 0px));
+  padding-left: calc(24px + var(--sb-half, 0px));
 }
 
 .skip {
@@ -825,7 +826,8 @@ a {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 16px 40px;
-  padding: 40px 24px;
+  padding-top: 40px;
+  padding-bottom: 40px;
 }
 .foot-brand p {
   margin-top: 8px;
@@ -3194,11 +3196,12 @@ li:first-child > .hit {
 
 @media (max-width: 640px) {
   .wrap {
-    padding-right: 16px;
-    padding-left: 16px;
+    padding-right: calc(16px - var(--sb-half, 0px));
+    padding-left: calc(16px + var(--sb-half, 0px));
   }
   .foot-in {
-    padding: 32px 16px;
+    padding-top: 32px;
+    padding-bottom: 32px;
   }
   .hero {
     padding: 36px 0 40px;
