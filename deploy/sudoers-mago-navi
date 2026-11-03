@@ -1,0 +1,2 @@
+# /etc/sudoers.d/mago-navi-deploy (0440). 넣기 전에 visudo -cf 로 확인. 배포 계정이 이 스크립트만 root 로 실행
+deploy ALL=(root) NOPASSWD: /usr/local/bin/mago-navi-deploy

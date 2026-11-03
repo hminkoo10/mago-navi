@@ -1,0 +1,4 @@
+node_modules
+dist
+# 개발 실행(MAGOEDU_DEV=1)이 만드는 폴더
+.magoedu-dev

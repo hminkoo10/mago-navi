@@ -1,0 +1,64 @@
+{
+  "name": "mago-navi-pc",
+  "productName": "MagoNavi",
+  "version": "0.1.0",
+  "description": "마고 과목내비 PC - 마고에듀 통합 클라우드에서 켜서 통합 클라우드 계정으로 자동 로그인하는 마고 과목내비 창",
+  "main": "src/main.js",
+  "author": {
+    "name": "구현민",
+    "url": "https://github.com/hminkoo10"
+  },
+  "license": "AGPL-3.0-only",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hminkoo10/mago-navi.git"
+  },
+  "scripts": {
+    "start": "electron .",
+    "check": "node --check src/main.js && node --check src/magoedu-cloud.js && node --check scripts/write-manifest.mjs",
+    "dist": "electron-builder --win dir --x64 --publish never && node scripts/write-manifest.mjs"
+  },
+  "devDependencies": {
+    "electron": "44.7.2",
+    "electron-builder": "26.17.0"
+  },
+  "build": {
+    "appId": "io.github.hminkoo10.magonavi",
+    "productName": "MagoNavi",
+    "copyright": "Copyright © 2026 구현민",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "build/icon.png",
+      "package.json"
+    ],
+    "asar": true,
+    "extraFiles": [
+      {
+        "from": "../LICENSE",
+        "to": "LICENSE"
+      }
+    ],
+    "electronFuses": {
+      "runAsNode": false,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false
+    },
+    "win": {
+      "target": [
+        {
+          "target": "dir",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "executableName": "MagoNavi"
+    }
+  }
+}

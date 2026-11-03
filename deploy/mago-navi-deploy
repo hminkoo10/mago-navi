@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+# 마고 과목내비 웹 서버 - 새 버전 적용 (GitHub Actions 자동 배포가 SSH 로 실행, .github/workflows/deploy.yml)
+#
+#   sudo mago-navi-deploy <배포본.tar.gz> [sha256]
+#
+# 1) 배포본 확인(SHA-256, 파일, 문법)
+# 2) /opt/mago-navi/releases/<시각>-<sha> 에 풀고 운영 의존성 설치 (npm ci --omit=dev: 서버 CPU(arm64)에 맞는 @napi-rs/canvas)
+# 3) current 링크를 새 판으로 바꾸고 서버 다시 켜기
+# 4) /api/health 가 30초 안에 뜨는지 확인 — 안 되면 이전 판으로 되돌리고 실패로 끝낸다.
+# 최근 3개 판만 남긴다. 데이터(/var/lib/mago-navi)와 설정(/etc/mago-navi.env)은 건드리지 않는다.
+# 설치: sudo install -m 755 mago-navi-deploy /usr/local/bin/mago-navi-deploy  (sudoers-mago-navi 와 함께)
+set -euo pipefail
+
+BASE="${BASE:-/opt/mago-navi}"
+RELEASES="$BASE/releases"
+CURRENT="$BASE/current"
+ENV_FILE="${ENV_FILE:-/etc/mago-navi.env}"
+SERVICE="${SERVICE:-mago-navi}"
+SYSTEMCTL="${SYSTEMCTL:-systemctl}"
+LOCK_FILE="${LOCK_FILE:-/run/lock/mago-navi-deploy.lock}"
+NPM_CACHE="${NPM_CACHE:-/var/cache/mago-navi-npm}"
+HEALTH_TIMEOUT="${HEALTH_TIMEOUT:-30}"
+KEEP="${KEEP:-3}"
+RUN_AS="${RUN_AS:-mago-navi}" # 서비스 계정 (mago-navi.service 의 User). 배포본의 코드는 root 로 돌리지 않는다
+
+say() { echo "[배포] $*"; }
+fail() { echo "[배포] 실패: $*" >&2; exit 1; }
+
+TARBALL="${1:-}"
+WANT_SHA="${2:-}"
+[ -n "$TARBALL" ] && [ -f "$TARBALL" ] || fail "배포본 파일이 없어요: ${TARBALL:-(없음)}"
+for cmd in node npm curl flock tar sha256sum runuser; do
+  command -v "$cmd" >/dev/null || fail "$cmd 가 없어요."
+done
+
+# 한 번에 하나만
+mkdir -p "$(dirname "$LOCK_FILE")"
+exec 9>"$LOCK_FILE"
+flock -w 120 9 || fail "다른 배포가 진행 중이에요."
+
+# ---------------------------------------------------------------- 1) 확인
+GOT_SHA="$(sha256sum "$TARBALL" | awk '{print $1}')"
+if [ -n "$WANT_SHA" ] && [ "$GOT_SHA" != "$WANT_SHA" ]; then
+  fail "배포본이 올리던 중 바뀌었어요 (SHA-256 불일치)."
+fi
+
+mkdir -p "$RELEASES"
+NEW="$RELEASES/$(date +%Y%m%d-%H%M%S)-${GOT_SHA:0:7}"
+[ -e "$NEW" ] && fail "같은 이름의 판이 이미 있어요: $NEW"
+mkdir "$NEW"
+discard() { rm -rf "${NEW:?}"; fail "$1"; }
+
+tar -xzf "$TARBALL" -C "$NEW" --strip-components=1 --no-same-owner --no-same-permissions
+for f in package.json package-lock.json dist/index.html dist-server/index.js; do
+  [ -f "$NEW/$f" ] || discard "배포본에 $f 가 없어요."
+done
+node --check "$NEW/dist-server/index.js" || discard "문법 오류: dist-server/index.js"
+
+# ---------------------------------------------------------------- 2) 운영 의존성
+# root 로 돌기 때문에 설치 스크립트는 돌리지 않는다 (@napi-rs/canvas 는 CPU 별로 미리 빌드된 패키지라 필요 없음)
+say "의존성 설치 (npm ci --omit=dev)"
+mkdir -p "$NPM_CACHE"
+(cd "$NEW" && npm ci --omit=dev --ignore-scripts --no-audit --no-fund --loglevel=error --cache "$NPM_CACHE") ||
+  discard "npm ci 에 실패했어요."
+chown -R root:root "$NEW"
+chmod -R u=rwX,go=rX "$NEW"
+# 불러 보기는 서비스 계정으로 (패키지 코드가 root 로 돌지 않게)
+(cd "$NEW" && runuser -u "$RUN_AS" -- node -e "require('@napi-rs/canvas')") || discard "@napi-rs/canvas 를 불러오지 못했어요 (이 서버 CPU 용 패키지 확인)."
+
+# ---------------------------------------------------------------- 3) 교체 + 다시 켜기
+PREV="$(readlink -f "$CURRENT" 2>/dev/null || true)"
+[ -n "$PREV" ] && [ -d "$PREV" ] || PREV=""
+
+switch_to() {
+  # 링크를 옆에 만든 뒤 이름 바꾸기 → current 가 잠깐이라도 없는 순간이 없게
+  ln -sfn "$1" "$CURRENT.tmp"
+  mv -Tf "$CURRENT.tmp" "$CURRENT"
+}
+
+envval() { grep -E "^$1=" "$ENV_FILE" 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '"'"'" || true; }
+PORT="$(envval PORT)"
+HOST="$(envval HOST)"
+case "${HOST:-127.0.0.1}" in 0.0.0.0 | :: | "") HOST=127.0.0.1 ;; esac
+HEALTH_URL="${HEALTH_URL:-http://$HOST:${PORT:-8480}/api/health}"
+
+healthy() {
+  local i
+  for ((i = 0; i < HEALTH_TIMEOUT; i++)); do
+    if curl -fsS -m 3 -o /dev/null "$HEALTH_URL" 2>/dev/null; then return 0; fi
+    sleep 1
+  done
+  return 1
+}
+
+say "${PREV:+$(basename "$PREV") → }$(basename "$NEW")"
+switch_to "$NEW"
+"$SYSTEMCTL" restart "$SERVICE" 9>&- || true
+if healthy; then
+  # 오래된 판 정리 (지금 판은 남김)
+  ls -1 "$RELEASES" | sort | head -n -"$KEEP" | while IFS= read -r d; do
+    [ -n "$d" ] && [ "$RELEASES/$d" != "$NEW" ] && rm -rf "${RELEASES:?}/$d"
+  done
+  say "완료: $(basename "$NEW") 정상 동작 중 ($HEALTH_URL)"
+  exit 0
+fi
+
+# ---------------------------------------------------------------- 되돌리기
+echo "[배포] 새 판이 ${HEALTH_TIMEOUT}초 안에 켜지지 않았어요." >&2
+if command -v journalctl >/dev/null 2>&1 && [ "$SYSTEMCTL" = systemctl ]; then
+  journalctl -u "$SERVICE" -n 30 --no-pager >&2 || true
+fi
+# 실패한 판은 살펴볼 수 있게 하나만 남김
+rm -rf "${BASE:?}/failed"
+mv "$NEW" "$BASE/failed"
+if [ -z "$PREV" ]; then
+  rm -f "$CURRENT"
+  fail "첫 배포가 켜지지 않았어요. 되돌릴 판이 없어요 (실패한 파일: $BASE/failed)."
+fi
+switch_to "$PREV"
+"$SYSTEMCTL" restart "$SERVICE" 9>&- || true
+if healthy; then
+  fail "새 판이 켜지지 않아 이전 판 $(basename "$PREV") 으로 되돌렸어요. (실패한 파일: $BASE/failed)"
+fi
+fail "되돌린 이전 판도 켜지지 않아요. 서버를 직접 확인해 주세요: systemctl status $SERVICE"

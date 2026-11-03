@@ -1,7 +1,7 @@
 // 오프라인용 서비스 워커. 화면 파일은 네트워크를 먼저 보고, 해시가 붙은 정적 파일은 캐시를 먼저 본다.
 // /api 요청은 캐시하지 않는다. 오류 화면이 오프라인 화면으로 남지 않게 제대로 받은 HTML만 캐시한다.
-// (v3: 예전 판이 캐시했을 수 있는 오류 화면을 버린다)
-const CACHE = 'gwamok-v3'
+// (원본 과목내비 v3에서 예전 판이 캐시했을 수 있는 오류 화면을 버리려고 판을 올렸다. 마고 과목내비는 이름부터 새로)
+const CACHE = 'mago-navi-v1'
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(['/', '/manifest.webmanifest', '/favicon.svg'])))

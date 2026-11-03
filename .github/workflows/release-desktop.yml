@@ -1,0 +1,115 @@
+# 마고 과목내비 PC 배포 (마고에듀 통합 클라우드용 묶음)
+#
+# desktop/package.json 의 version 을 올리고 desktop-v<버전> 태그를 푸시하면 자동으로:
+#   1) 빌드 (electron-builder --win dir) → magoedu-app.json 을 넣어 MagoNavi-x.y.z-win-x64.zip (+ .sha256) 으로 묶기
+#      (zip 맨 위에 MagoNavi.exe, LICENSE, magoedu-app.json — MagoEdu docs/INTEGRATION.md)
+#   2) Release(desktop-vX.Y.Z)에 zip, sha256, magoedu-app.json 올리기
+#   3) 통합 클라우드가 새 버전을 받아 두고, 다음에 켤 때 새 버전으로 켬
+# 손으로 배포: Actions → "Release (PC)" → Run workflow (지금 desktop/package.json 버전으로 태그와 Release 를 만듦)
+#
+#   cd desktop && npm version patch --no-git-tag-version   # 0.1.0 → 0.1.1
+#   git commit -am "PC v0.1.1" && git tag desktop-v0.1.1 && git push origin main desktop-v0.1.1
+name: Release (PC)
+
+on:
+  push:
+    tags: ['desktop-v*']
+  workflow_dispatch:
+    inputs:
+      notes:
+        description: '이번 업데이트 내용 (비우면 커밋 제목으로 자동 작성)'
+        type: string
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-desktop
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - run: npm ci
+
+      - name: 문법 확인
+        run: npm run check
+
+      - name: 버전·태그 확인
+        run: |
+          v="$(node -p "require('./package.json').version")"
+          tag="desktop-v$v"
+          if [ "${{ github.ref_type }}" = "tag" ] && [ "$GITHUB_REF_NAME" != "$tag" ]; then
+            echo "::error::태그($GITHUB_REF_NAME)와 desktop/package.json 버전($v)이 다릅니다. version 을 먼저 올려 주세요."
+            exit 1
+          fi
+          git fetch --tags --force
+          {
+            echo "VERSION=$v"
+            echo "TAG=$tag"
+            echo "ZIP=MagoNavi-$v-win-x64.zip"
+            echo "PREV_TAG=$(git describe --tags --abbrev=0 --match 'desktop-v*' HEAD^ 2>/dev/null || true)"
+          } >> "$GITHUB_ENV"
+
+      # 통합 클라우드가 받는 묶음: 빌드한 폴더 + magoedu-app.json 을 zip 하나로
+      - name: 빌드 + zip 묶기
+        run: |
+          npx electron-builder --win dir --x64 --publish never
+          node scripts/write-manifest.mjs
+          (cd dist/win-unpacked && 7z a -tzip -mx=5 "../$ZIP" . > /dev/null)
+          (cd dist && sha256sum "$ZIP" > "$ZIP.sha256" && cat "$ZIP.sha256")
+          cp dist/win-unpacked/magoedu-app.json dist/magoedu-app.json
+          for f in MagoNavi.exe LICENSE magoedu-app.json; do
+            7z l -ba -slt "dist/$ZIP" | grep -qx "Path = $f" || { echo "::error::zip 맨 위에 $f 가 없습니다"; exit 1; }
+          done
+
+      - name: 업데이트 내용 준비
+        env:
+          NOTES: ${{ inputs.notes }}
+        run: |
+          # 1) 수동 실행 때 입력한 내용  2) 태그 메시지  3) 지난 PC 버전 이후 desktop/ 커밋 제목  4) 기본 문구
+          if [ -z "$NOTES" ] && [ "${{ github.ref_type }}" = "tag" ]; then
+            git fetch --force origin "refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}" || true
+            if [ "$(git cat-file -t "refs/tags/${GITHUB_REF_NAME}")" = "tag" ]; then
+              NOTES="$(git for-each-ref "refs/tags/${GITHUB_REF_NAME}" --format='%(contents)')"
+            fi
+          fi
+          if [ -z "$NOTES" ] && [ -n "$PREV_TAG" ]; then
+            NOTES="$(git log --no-merges --pretty='- %s' "${PREV_TAG}..HEAD" -- . | head -30 || true)"
+          fi
+          export NOTES
+          node -e "const n=(process.env.NOTES||'').replace(/-----BEGIN PGP SIGNATURE-----[\\s\\S]*$/, '').trim(); require('fs').writeFileSync('release-notes.md', n || ('마고 과목내비 PC ' + process.env.VERSION))"
+          cat release-notes.md
+
+      - name: GitHub Release 올리기 (zip + sha256 + magoedu-app.json)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          files=("dist/$ZIP" "dist/$ZIP.sha256" "dist/magoedu-app.json")
+          for f in "${files[@]}"; do
+            [ -f "$f" ] || { echo "::error::$f 이(가) 없습니다"; ls dist; exit 1; }
+          done
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" "${files[@]}" --clobber
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
+            gh release create "$TAG" "${files[@]}" --title "마고 과목내비 PC $VERSION" --notes-file release-notes.md --verify-tag
+          else
+            gh release create "$TAG" "${files[@]}" --title "마고 과목내비 PC $VERSION" --notes-file release-notes.md --target "$GITHUB_SHA"
+          fi

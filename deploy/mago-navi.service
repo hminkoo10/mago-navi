@@ -1,0 +1,53 @@
+# 마고 과목내비 웹 서버 (systemd)
+#   설치: sudo install -m 644 mago-navi.service /etc/systemd/system/mago-navi.service
+#         sudo systemctl daemon-reload && sudo systemctl enable mago-navi   (첫 배포가 /opt/mago-navi/current 를 만든 뒤 켜짐)
+#   상태: systemctl status mago-navi
+#   기록: journalctl -u mago-navi -f
+[Unit]
+Description=Mago Navi web server (magonavi.milky.kr)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mago-navi
+Group=mago-navi
+WorkingDirectory=/opt/mago-navi/current
+Environment=NODE_ENV=production
+Environment=DATA_DIR=/var/lib/mago-navi
+EnvironmentFile=/etc/mago-navi.env
+ExecStart=/usr/bin/node dist-server/index.js
+Restart=always
+RestartSec=3
+KillSignal=SIGTERM
+TimeoutStopSec=20
+
+# 메모리: 편제표 PDF 를 그림으로 바꿀 때 한 번에 수백 MB 를 쓸 수 있음. 넘으면 이 서버만 다시 켜짐 (통합 클라우드는 그대로)
+MemoryHigh=768M
+MemoryMax=1G
+
+# 보안: 데이터 폴더 말고는 쓰지 못하게
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/mago-navi
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+LockPersonality=true
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+[Install]
+WantedBy=multi-user.target

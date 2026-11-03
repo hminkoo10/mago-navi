@@ -1,7 +1,9 @@
 {
-  "name": "gwamok-navi",
+  "name": "mago-navi",
   "private": true,
   "version": "0.0.0",
+  "description": "마고 과목내비 - 학생마다 희망 학과·대학에 맞춰 고교 선택과목을 짜 주는 웹앱 (과목내비 gwamok-navi 포크)",
+  "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,7 +11,8 @@
     "start": "node dist-server/index.js",
     "preview": "vite preview",
     "lint": "oxlint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "icon": "node scripts/build-icon.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.132.1",

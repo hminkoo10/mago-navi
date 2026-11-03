@@ -1,0 +1,136 @@
+# 웹 자동 배포: GitHub Actions → oci2 (magonavi.milky.kr, 통합 클라우드와 같은 서버, SSH)
+#
+# main 에 올라오면 자동으로:
+#   1) 시험 (npm test)  2) 빌드 (dist, dist-server)  3) 배포본(tar.gz) 만들어 SSH 로 서버에 올리기
+#   4) 서버에서 mago-navi-deploy 실행 — /opt/mago-navi/releases/<시각> 에 풀고 npm ci --omit=dev (arm64 @napi-rs/canvas)
+#      → current 링크 교체 → 다시 켜기 → /api/health 확인 (안 켜지면 이전 판으로 되돌리고 이 워크플로가 실패로 표시돼요)
+# PC 프로그램(desktop/)만 바뀌면 배포하지 않아요 (release-desktop.yml).
+# 손으로 배포: Actions → "Deploy (웹)" → Run workflow
+#
+# 처음 한 번 설정 (서버, root):
+#   - Node 24 + npm 확인 (node -v), 서비스 계정·폴더:
+#       useradd --system --home /var/lib/mago-navi --shell /usr/sbin/nologin mago-navi
+#       install -d -o mago-navi -g mago-navi -m 750 /var/lib/mago-navi && install -d -m 755 /opt/mago-navi/releases
+#   - deploy/mago-navi.env.example → /etc/mago-navi.env (root 0600) 값 채우기 (MAGO_APP_SECRET 은 통합 클라우드의 앱 비밀값)
+#   - deploy/mago-navi-deploy → /usr/local/bin/mago-navi-deploy (root 0755)
+#   - deploy/sudoers-mago-navi → /etc/sudoers.d/mago-navi-deploy (0440, visudo -cf 로 확인)
+#   - deploy/mago-navi.service → /etc/systemd/system/ 후 systemctl daemon-reload && systemctl enable mago-navi
+#     (첫 배포가 current 를 만든 뒤 켜져요)
+#   - deploy/nginx-magonavi.conf → /etc/nginx/sites-available/ (인증서 경로 바꾸기), nginx -t && systemctl reload nginx
+#   - Cloudflare DNS magonavi → 서버 IP (프록시 켬, SSL Full(strict))
+# GitHub: Settings → Secrets and variables → Actions 에 MagoEdu 저장소와 같은 값
+#   DEPLOY_SSH_KEY, DEPLOY_KNOWN_HOSTS (+ 필요하면 DEPLOY_HOST, DEPLOY_PORT, DEPLOY_USER)
+#   DEPLOY_SSH_KEY 가 없으면 시험과 배포본 만들기까지만 하고 배포는 건너뛰어요.
+name: Deploy (웹)
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'desktop/**'
+      - 'deploy/**'
+      - '.github/workflows/release-desktop.yml'
+      - '**/*.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-web
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      HAS_TARGET: ${{ secrets.DEPLOY_SSH_KEY != '' }}
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST || 'mago.milky.kr' }}
+      DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || '22' }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER || 'deploy' }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: 시험
+        run: npm test
+
+      - name: 빌드
+        run: npm run build
+
+      - name: 배포본 만들기
+        run: |
+          name="mago-navi-${GITHUB_SHA::7}.tar.gz"
+          mkdir -p out/mago-navi
+          cp -r dist dist-server out/mago-navi/
+          cp package.json package-lock.json out/mago-navi/
+          node -e "require('fs').writeFileSync('out/mago-navi/build.json', JSON.stringify({ commit: process.env.GITHUB_SHA, builtAt: Date.now() }))"
+          tar -czf "out/$name" -C out mago-navi
+          sha="$(sha256sum "out/$name" | awk '{print $1}')"
+          {
+            echo "TARBALL=out/$name"
+            echo "TARBALL_NAME=$name"
+            echo "TARBALL_SHA=$sha"
+          } >> "$GITHUB_ENV"
+          echo "배포본: $name ($sha)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mago-navi-web
+          path: ${{ env.TARBALL }}
+          retention-days: 14
+
+      - name: 배포 설정 확인
+        if: env.HAS_TARGET != 'true'
+        run: echo "::notice::DEPLOY_SSH_KEY 가 없어서 서버 배포는 건너뛰었어요. 이 파일 맨 위의 ‘처음 한 번 설정’을 참고해 넣어 주세요."
+
+      - name: SSH 준비
+        if: env.HAS_TARGET == 'true'
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          if [ -n "$DEPLOY_KNOWN_HOSTS" ]; then
+            printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            ssh-keyscan -p "$DEPLOY_PORT" -T 15 "$DEPLOY_HOST" > ~/.ssh/known_hosts 2>/dev/null
+            echo "::warning::DEPLOY_KNOWN_HOSTS 가 없어서 서버 지문을 확인하지 않고 접속했어요."
+          fi
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: 서버에 올리고 적용
+        if: env.HAS_TARGET == 'true'
+        run: |
+          port="$DEPLOY_PORT"
+          remote="$DEPLOY_USER@$DEPLOY_HOST"
+          opts=(-i ~/.ssh/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=20 -o ServerAliveInterval=15)
+          ssh "${opts[@]}" -p "$port" "$remote" 'mkdir -p ~/.mago-navi-deploy'
+          scp "${opts[@]}" -P "$port" "$TARBALL" "$remote:.mago-navi-deploy/$TARBALL_NAME"
+          ssh "${opts[@]}" -p "$port" "$remote" \
+            "sudo -n /usr/local/bin/mago-navi-deploy ~/.mago-navi-deploy/$TARBALL_NAME $TARBALL_SHA; rc=\$?; rm -f ~/.mago-navi-deploy/$TARBALL_NAME; exit \$rc"
+
+      - name: 결과
+        if: env.HAS_TARGET == 'true'
+        env:
+          SITE_URL: ${{ vars.MAGO_NAVI_URL || 'https://magonavi.milky.kr' }}
+        run: |
+          {
+            echo "### 웹 배포 완료"
+            echo "- 커밋: ${GITHUB_SHA::7}"
+            echo "- 배포본: $TARBALL_NAME"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if curl -fsS -m 15 -o /dev/null "$SITE_URL/api/health"; then
+            echo "공개 주소에서도 켜진 것을 확인했어요."
+          else
+            echo "::warning::$SITE_URL/api/health 에 연결하지 못했어요. (DNS·Cloudflare·nginx 확인)"
+          fi
