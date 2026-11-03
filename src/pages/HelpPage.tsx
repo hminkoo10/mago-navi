@@ -95,7 +95,7 @@ const TERMS: [string, string][] = [
 ]
 
 export function HelpPage() {
-  const { features } = useApp()
+  const { features, user } = useApp()
   const ai = features.ai
   const training = useAiTraining()
   const counts = {
@@ -122,7 +122,7 @@ export function HelpPage() {
         <a href="#sources">자료 출처</a>
         <a href="#school-data">학교 편제표를 가져오는 방법</a>
         <a href="#privacy">개인정보 안내</a>
-        {features.userKey && <Link to="/help/gemini-key">Gemini API 키 발급 방법</Link>}
+        {features.userKey && user?.magoRole !== 'student' && <Link to="/help/gemini-key">Gemini API 키 발급 방법</Link>}
       </nav>
 
       <section id="faq" className="help-section">

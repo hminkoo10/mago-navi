@@ -44,8 +44,10 @@ export interface FakeCloudUser {
   id: string
   username: string
   name: string
-  role: 'admin' | 'director' | 'teacher'
+  role: 'admin' | 'director' | 'teacher' | 'student'
   academy: { id: number; name: string } | null
+  studentId?: string
+  aiMode?: 'academy' | 'teacher'
   /** suspended면 코드 바꾸기·세션 모두 401 */
   status?: 'active' | 'suspended'
   /** 이 프로그램을 쓸 권한이 없음 (코드 바꾸기 403) */
@@ -122,6 +124,14 @@ export async function fakeCloud() {
     })
   // 학원 ID는 보내지 않는다 (undefined는 JSON에서 빠짐)
   const publicStudent = (s: FakeStudent) => ({ ...s, academyId: undefined, purgeAt: s.deletedAt ? s.deletedAt + 30 * 86400_000 : null })
+  const studentFor = (u: FakeCloudUser) => students.find((s) => s.id === u.studentId && s.academyId === u.academy?.id && !s.deletedAt)
+  const publicUser = (u: FakeCloudUser) => {
+    const s = u.role === 'student' ? studentFor(u) : null
+    return { ...u, roleLabel: u.role, status: 'active', ...(u.role === 'student' ? {
+      student: s ? { id: s.id, name: s.name, teacherUid: s.teacher?.id ?? null, teacherName: s.teacher?.name ?? null } : null,
+      aiMode: u.aiMode ?? 'academy',
+    } : {}) }
+  }
 
   const server = createServer(async (req, res) => {
     const url = new URL(req.url ?? '/', 'http://cloud.test')
@@ -139,7 +149,7 @@ export async function fakeCloud() {
     const b = (body && typeof body === 'object' ? body : {}) as Record<string, unknown>
     const me = () => {
       const u = users.get(sessions.get(token) ?? '')
-      return u && u.status !== 'suspended' ? u : null
+      return u && u.status !== 'suspended' && (u.role !== 'student' || studentFor(u)) ? u : null
     }
 
     if (method === 'POST' && path === '/api/sso/token') {
@@ -152,11 +162,12 @@ export async function fakeCloud() {
       if (u.denied) return fail(res, 403, 'forbidden', '이 프로그램을 쓸 권한이 없어요.')
       const t = `mgc_${randomBytes(32).toString('base64url')}`
       sessions.set(t, u.id)
-      return send(res, 200, { token: t, user: { ...u, roleLabel: u.role, status: 'active' } })
+      return send(res, 200, { token: t, user: publicUser(u) })
     }
     if (path.startsWith('/api/ai/relay/')) {
       const u = me()
       if (!u) return fail(res, 401, 'session_invalid', '로그인이 끝났어요. 다시 로그인해 주세요.')
+      if (u.role === 'student' && u.aiMode === 'teacher') return fail(res, 403, 'student_ai_teacher', '담당 선생님의 AI 키로 이용해야 해요.')
       if (!u.academy || !ai.get(u.academy.id)) return fail(res, 404, 'no_academy_ai', '학원 AI 가 아직 없어요.')
       if (relay.error) return send(res, relay.status, relay.error)
       const rest = path.replace(/^\/api\/ai\/relay\/mago-navi\//, '')
@@ -166,11 +177,13 @@ export async function fakeCloud() {
     }
     const u = me()
     if (!u) return fail(res, 401, 'session_invalid', '로그인이 끝났어요. 다시 로그인해 주세요.')
-    if (method === 'GET' && path === '/api/me') return send(res, 200, { user: { ...u, roleLabel: u.role, status: 'active' } })
+    if (method === 'GET' && path === '/api/me') return send(res, 200, { user: publicUser(u) })
     if (method === 'POST' && path === '/api/auth/logout') {
       sessions.delete(token)
       return send(res, 200, { ok: true })
     }
+    if (u.role === 'student' && !(method === 'GET' && path === '/api/academy/ai'))
+      return fail(res, 403, 'student_forbidden', '학생 계정으로는 쓸 수 없는 기능이에요.')
     const aca = u.role === 'admin' ? Number(url.searchParams.get('academy')) || null : (u.academy?.id ?? null)
     if (!aca) return fail(res, 404, 'no_academy', '학원에 속한 계정만 학생 명단을 쓸 수 있어요.')
     if (method === 'GET' && path === '/api/students')

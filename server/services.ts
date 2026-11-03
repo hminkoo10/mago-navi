@@ -199,6 +199,6 @@ export function requireUser(call: Call): User {
 
 export function requireAdmin(call: Call): User {
   const user = requireUser(call)
-  if (!isAdmin(user)) throw new HttpError(403, '관리자만 쓸 수 있어요.')
+  if (!isAdmin(user) || call.services.mago.profile(user.id)?.magoRole === 'student') throw new HttpError(403, '관리자만 쓸 수 있어요.')
   return user
 }

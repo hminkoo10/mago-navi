@@ -93,6 +93,7 @@ export function StudentList({ onPicked }: { onPicked?: () => void }) {
     onPicked?.()
   }
 
+  if (user?.magoRole === 'student') return null
   if (adding) return <AddStudent onDone={() => onPicked?.()} onCancel={() => setAdding(false)} />
 
   return (
@@ -145,7 +146,7 @@ export function StudentList({ onPicked }: { onPicked?: () => void }) {
 
 /** 머리글의 학생 고르기 (학원 사람만) */
 export function StudentPicker() {
-  const { students } = useApp()
+  const { students, user } = useApp()
   const [open, setOpen] = useState(false)
   const box = useRef<HTMLDivElement>(null)
   const { path } = useLocation()
@@ -174,7 +175,7 @@ export function StudentPicker() {
     setOpen(false)
   }
 
-  if (!students.active) return null
+  if (!students.active || user?.magoRole === 'student') return null
   const { current } = students
   return (
     <div className="stu" ref={box}>

@@ -8,6 +8,11 @@ import { Link } from './Link'
 export function KeyNeeded({ what, other }: { what: string; other?: string }) {
   const { user } = useApp()
   const ai = user?.ai
+  if (user?.magoRole === 'student') return (
+    <div className="callout key-needed" role="status">
+      <p>{ai?.message || (user.aiMode === 'teacher' ? '담당 선생님이 AI 키를 등록하지 않았어요' : '지금은 학원 AI를 쓸 수 없어요. 선생님께 알려 주세요.')}{other && ` ${other}`}</p>
+    </div>
+  )
   return (
     <div className="callout key-needed">
       <p>
