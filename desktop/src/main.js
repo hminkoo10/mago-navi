@@ -9,9 +9,10 @@
 // - 배포본에서는 개발자 도구를 막음 (창의 개발자 도구·원격 디버깅·--inspect, ELECTRON_RUN_AS_NODE 는 package.json 의 electronFuses)
 // - 업데이트는 통합 클라우드가 받아 둠 (다음에 켤 때 새 버전으로)
 
-const { app, BrowserWindow, Menu, dialog, session: sessions, shell } = require('electron');
+const { app, BrowserWindow, Menu, dialog, ipcMain, session: sessions, shell } = require('electron');
 const path = require('node:path');
 const cloud = require('./magoedu-cloud');
+const { readRoster, watchRoster, rosterSender } = require('./academy-roster');
 
 const APP_ID = 'mago-navi-pc';
 const TITLE = '마고 과목내비';
@@ -37,6 +38,9 @@ let ses = null;
 let launchCode = cs?.ssoCode || ''; // 켤 때 받은 60초짜리 코드 (한 번만 씀)
 let loggedInAt = 0;
 let opening = null;
+let stopRoster = () => {};
+
+ipcMain.handle('academy-roster:get', (event) => rosterSender(event, win, NAVI) ? readRoster(cs) : null);
 
 function isNavi(url) {
   try {
@@ -152,6 +156,7 @@ function createWindow() {
     icon: path.join(__dirname, '..', 'build', 'icon.png'),
     webPreferences: {
       session: ses,
+      preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       sandbox: true,
       nodeIntegration: false,
@@ -161,6 +166,10 @@ function createWindow() {
     },
   });
   const wc = win.webContents;
+  stopRoster = watchRoster(cs, () => {
+    // 데이터 대신 변경 알림만. 받는 쪽은 검증된 get IPC로 다시 읽는다.
+    if (!wc.isDestroyed() && isNavi(wc.getURL())) wc.send('academy-roster:changed');
+  });
 
   win.once('ready-to-show', () => win.show());
 
@@ -208,6 +217,7 @@ function createWindow() {
   });
 
   win.on('closed', () => {
+    stopRoster();
     win = null;
   });
   showPage('loading');
@@ -243,6 +253,7 @@ if (!cs) {
     createWindow();
   });
   app.on('window-all-closed', () => {
+    stopRoster();
     app.quit();
   });
 }

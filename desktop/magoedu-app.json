@@ -3,5 +3,6 @@
   "id": "mago-navi-pc",
   "version": "0.0.0",
   "exe": "MagoNavi.exe",
+  "academyInfo": true,
   "sso": "mago-navi"
 }

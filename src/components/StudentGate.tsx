@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ApiError } from '../lib/api'
 import { useApp } from '../lib/app'
 import { StudentList } from './StudentPicker'
+import { AcademyRosterPicker } from './AcademyRosterPicker'
 
 /** 학원 사람이 학생을 고르기 전: 설계 화면 자리에 학생 목록을 보인다 */
 export function StudentGate() {
@@ -18,10 +19,10 @@ export function StudentGate() {
       <h1 className="page-title">어느 학생의 설계를 열까요?</h1>
       <p className="page-sub">
         {user?.academy?.name ? `${user.academy.name}의 ` : ''}학생마다 설계를 따로 저장해요. 같은 학원 선생님은 누구나 함께 보고 고칠 수 있어요.
-        {students.list && !students.list.length ? ' 먼저 학생을 추가해 주세요.' : ''}
+        {students.list && !students.list.length && !students.roster?.students.length ? ' 먼저 학생을 추가해 주세요.' : ''}
       </p>
       <div className="panel-card">
-        <StudentList />
+        {students.roster ? <AcademyRosterPicker /> : <StudentList />}
       </div>
     </div>
   )

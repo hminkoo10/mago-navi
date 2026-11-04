@@ -1,7 +1,7 @@
 {
   "name": "mago-navi-pc",
   "productName": "MagoNavi",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "마고 과목내비 PC - 마고에듀 통합 클라우드에서 켜서 통합 클라우드 계정으로 자동 로그인하는 마고 과목내비 창",
   "main": "src/main.js",
   "author": {
@@ -16,7 +16,8 @@
   },
   "scripts": {
     "start": "electron .",
-    "check": "node --check src/main.js && node --check src/magoedu-cloud.js && node --check scripts/write-manifest.mjs",
+    "check": "node --check src/main.js && node --check src/preload.js && node --check src/academy-roster.js && node --check src/magoedu-cloud.js && node --check scripts/write-manifest.mjs",
+    "test": "node ../node_modules/vitest/vitest.mjs run --root .. desktop/src/academy-roster.test.js desktop/src/preload.test.js",
     "dist": "electron-builder --win dir --x64 --publish never && node scripts/write-manifest.mjs"
   },
   "devDependencies": {
@@ -33,6 +34,7 @@
     },
     "files": [
       "src/**/*",
+      "!src/**/*.test.js",
       "build/icon.png",
       "package.json"
     ],

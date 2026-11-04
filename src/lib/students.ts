@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ApiError, call, designApi, type DesignApi, type Me, postJson } from './api'
+import { useAcademyRoster, type AcademyRoster } from './academy-roster'
 
 // 학원 학생 명단 (통합 클라우드). 학원에 속한 사람은 학생을 골라 그 학생의 설계를 연다.
 // 명단은 서버가 클라우드에서 대신 받아 준다. 학원 사람 누구나 추가·되살리기를 할 수 있고,
@@ -54,6 +55,8 @@ export const matchStudent = (s: Student, q: string) => {
 }
 
 export interface Students {
+  /** PC에서만 전달되는 읽기 전용 학원 명단. 웹/학원 밖 계정은 null */
+  roster: AcademyRoster | null
   /** 학원 사람인지. 아니면 명단 없이 내 계정에 설계 하나 */
   active: boolean
   /** 명단 (지운 학생 포함). 받기 전이면 null */
@@ -77,6 +80,7 @@ export interface Students {
  * 연 학생을 그사이 누가 지우면 열어 둔 채 보기만 하게 하고 (App), 완전히 지워졌으면 닫는다
  */
 export function useStudents(user: Me | null): Students {
+  const roster = useAcademyRoster(user)
   const studentRole = user?.magoRole === 'student'
   const who = user && (user.academy || studentRole) ? user.id : null
   const cloudId = user?.cloudId ?? ''
@@ -171,9 +175,13 @@ export function useStudents(user: Me | null): Students {
     [reload, studentRole],
   )
 
-  const current = studentRole ? (list?.find((s) => s.id === self?.id) ?? self) : (picked && list?.find((s) => s.id === picked)) || null
+  const existing = studentRole ? (list?.find((s) => s.id === self?.id) ?? self) : (picked && list?.find((s) => s.id === picked)) || null
+  const native = roster?.students.find((s) => s.id === (studentRole ? self?.id : picked))
+  const current = useMemo(() => native && !existing?.deletedAt
+    ? { teacher: null, memo: '', rev: 0, deletedAt: null, ...existing, ...native }
+    : existing, [native, existing])
   return useMemo(
-    () => ({ active: who !== null, list, error, current, purgeDays, pick, reload, add, restore }),
-    [who, list, error, current, purgeDays, pick, reload, add, restore],
+    () => ({ active: who !== null, roster, list, error, current, purgeDays, pick, reload, add, restore }),
+    [who, roster, list, error, current, purgeDays, pick, reload, add, restore],
   )
 }

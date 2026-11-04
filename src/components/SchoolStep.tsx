@@ -20,6 +20,8 @@ import { schoolOrigin, thisCohort } from '../lib/format'
 import { safeHref } from '../lib/href'
 import { IconCheck, IconSearch, IconTrash } from './icons'
 import { KeyNeeded } from './KeyNeeded'
+import { AcademyRosterPicker } from './AcademyRosterPicker'
+import { matchRosterSchool, normalizeSchoolName, rosterCohort, type RosterStudent } from '../lib/academy-roster'
 
 const KIND_LABEL: Record<Candidate['kind'], string> = { pdf: 'PDF', xlsx: '엑셀', hwp: '한글', images: '그림', table: '본문 표' }
 const SOURCE_LABEL: Record<Candidate['source'], string> = { schoolinfo: '학교알리미 공시', homepage: '학교 홈페이지' }
@@ -82,7 +84,7 @@ function sanitize(raw: School, hit: SchoolHit, cohort: number, track: string): S
 }
 
 export function SchoolStep({ onEdit, onLoaded }: Props) {
-  const { store, features, notify, user } = useApp()
+  const { store, features, notify, user, students } = useApp()
   const server = features.server
   // 자동 읽기 불가: 관리자가 껐거나, 사용자 키 모드인데 내 Gemini 키가 없을 때
   const needKey = useNeedKey()
@@ -92,6 +94,9 @@ export function SchoolStep({ onEdit, onLoaded }: Props) {
   const [hits, setHits] = useState<SchoolHit[] | null>(null)
   const [searchMsg, setSearchMsg] = useState('')
   const [searching, setSearching] = useState(false)
+  const [rosterSearch, setRosterSearch] = useState<string | null>(null)
+  const [rosterMatched, setRosterMatched] = useState(false)
+  const [rosterHint, setRosterHint] = useState('')
   const [hit, setHit] = useState<SchoolHit | null>(null)
   const [info, setInfo] = useState<TrackInfo | null>(null)
   const [infoLoading, setInfoLoading] = useState(false)
@@ -117,6 +122,14 @@ export function SchoolStep({ onEdit, onLoaded }: Props) {
           if (my !== searchSeq.current) return
           setHits(r.schools)
           setSearchMsg(r.schools.length ? '' : '찾는 학교가 없어요. 이름을 줄여서 적어 보세요. 예: 반송고')
+          if (rosterSearch) {
+            // 나이스는 키가 없으면 최대 5건. 잘린 결과에서는 유일하다고 단정하지 않는다.
+            const matched = matchRosterSchool(rosterSearch, r.schools, r.schools.length < 5)
+            if (matched) {
+              setHit(matched)
+              setRosterMatched(true)
+            } else setSearchMsg('명단의 학교를 하나로 확인하지 못했어요. 학교 이름과 지역을 보고 직접 골라 주세요.')
+          }
         })
         .catch((e) => {
           if (my === searchSeq.current) setSearchMsg(e instanceof ApiError ? e.message : '학교를 찾지 못했어요.')
@@ -126,7 +139,7 @@ export function SchoolStep({ onEdit, onLoaded }: Props) {
         })
     }, 300)
     return () => clearTimeout(t)
-  }, [q, server])
+  }, [q, server, rosterSearch])
 
   useEffect(() => {
     if (load.kind !== 'reading') return
@@ -213,6 +226,7 @@ export function SchoolStep({ onEdit, onLoaded }: Props) {
   }
 
   const choose = async (h: SchoolHit) => {
+    setRosterMatched(false)
     abort.current?.abort()
     setHit(h)
     setTrack('')
@@ -234,6 +248,8 @@ export function SchoolStep({ onEdit, onLoaded }: Props) {
   }
 
   const reset = () => {
+    setRosterSearch(null)
+    setRosterMatched(false)
     abort.current?.abort()
     setHit(null)
     setInfo(null)
@@ -242,6 +258,31 @@ export function SchoolStep({ onEdit, onLoaded }: Props) {
     setCustom('')
     setLoad({ kind: 'idle' })
   }
+
+  const fillRoster = (s: RosterStudent) => {
+    reset()
+    const c = rosterCohort(s)
+    if (c !== null) setCohort(c)
+    // 앞선 검색은 취소하고 입력/선택은 사용자가 언제든 바꿀 수 있게 둔다.
+    ++searchSeq.current
+    setHits(null)
+    setSearchMsg('')
+    setSearching(false)
+    setQ(normalizeSchoolName(s.school))
+    setRosterSearch(s.school || null)
+    setRosterHint(!s.school ? '명단에 학교가 없어요. 학교를 직접 골라 주세요.' : c === null ? '이름·학교·학년을 불러왔어요. 학년을 입학년도로 확정할 수 없어 입학년도를 직접 골라 주세요.' : '명단의 학교·학년으로 채웠어요. 학교와 입학년도를 확인해 주세요.')
+  }
+  const nativeStudent = students.roster?.students.find((s) => s.id === students.current?.id)
+  const filled = useRef('')
+  const edited = useRef('')
+  const rosterKey = `${students.current?.id ?? ''}:${store.prefs.slot}`
+  useEffect(() => {
+    if (!nativeStudent || store.school) return
+    if (filled.current === rosterKey || edited.current === rosterKey) return
+    filled.current = rosterKey
+    fillRoster(nativeStudent)
+    // 명단 갱신/재렌더로 사용자가 고친 값을 덮지 않는다. 기존 설계의 학교도 유지한다.
+  }, [nativeStudent, store.school, rosterKey])
 
   const busy = load.kind === 'busy' || load.kind === 'reading'
   const options = trackOptions(info)
@@ -309,6 +350,8 @@ export function SchoolStep({ onEdit, onLoaded }: Props) {
 
   return (
     <div className="school-step">
+      <AcademyRosterPicker onSelected={fillRoster} disabled={busy || infoLoading} />
+      {rosterHint && <p className="hint" role="status">{rosterHint}</p>}
       {store.schools.length > 0 && !hit && (
         <section className="field-block">
           <h3 className="field-label">저장된 학교</h3>
@@ -348,7 +391,7 @@ export function SchoolStep({ onEdit, onLoaded }: Props) {
       <section className="field-block">
         <h3 className="field-label">입학년도</h3>
         <div className="segmented" role="radiogroup" aria-label="입학년도">
-          {[thisCohort() - 1, thisCohort(), thisCohort() + 1].map((c) => (
+          {(students.roster ? [thisCohort() - 2, thisCohort() - 1, thisCohort(), thisCohort() + 1] : [thisCohort() - 1, thisCohort(), thisCohort() + 1]).map((c) => (
             <button
               key={c}
               type="button"
@@ -357,12 +400,13 @@ export function SchoolStep({ onEdit, onLoaded }: Props) {
               className={cohort === c ? 'is-on' : ''}
               disabled={busy}
               onClick={() => {
+                edited.current = rosterKey
                 setCohort(c)
                 if (hit) reset()
               }}
             >
               <strong>{c}</strong>
-              <span>{c === thisCohort() ? '지금 고1' : c === thisCohort() - 1 ? '지금 고2' : '예비 고1'}</span>
+              <span>{c === thisCohort() ? '지금 고1' : c === thisCohort() - 1 ? '지금 고2' : c === thisCohort() - 2 ? '지금 고3' : '예비 고1'}</span>
             </button>
           ))}
         </div>
@@ -384,6 +428,8 @@ export function SchoolStep({ onEdit, onLoaded }: Props) {
               type="search"
               value={q}
               onChange={(e) => {
+                edited.current = rosterKey
+                setRosterSearch(null)
                 setQ(e.target.value)
                 if (e.target.value.trim().length < 2) {
                   setHits(null)
@@ -432,11 +478,17 @@ export function SchoolStep({ onEdit, onLoaded }: Props) {
                 {track ? ` · ${label(track)}` : ''}
               </span>
             </div>
-            <button type="button" className="btn btn-sm" onClick={reset} disabled={load.kind === 'busy'}>
+            <button type="button" className="btn btn-sm" onClick={() => { edited.current = rosterKey; reset() }} disabled={load.kind === 'busy'}>
               다른 학교
             </button>
           </div>
 
+          {rosterMatched && (
+            <div className="load-card">
+              <p className="hint">명단의 학교와 일치해요. 편제표를 불러오면 이 학생 설계에 저장해요.</p>
+              <button type="button" className="btn btn-primary" onClick={() => void choose(hit)}>이 학교 편제표 불러오기</button>
+            </div>
+          )}
           {infoLoading && (
             <p className="progress-line hint">
               <span className="spinner" aria-hidden="true" />
@@ -489,7 +541,7 @@ export function SchoolStep({ onEdit, onLoaded }: Props) {
             </div>
           )}
 
-          {options.length === 0 && !infoLoading && !busy && load.kind !== 'choose' && (
+          {options.length === 0 && !rosterMatched && !infoLoading && !busy && load.kind !== 'choose' && (
             <div className="track-note">
               {customOpen ? (
                 <>
