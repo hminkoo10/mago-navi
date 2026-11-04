@@ -81,12 +81,6 @@ jobs:
           } >> "$GITHUB_ENV"
           echo "배포본: $name ($sha)"
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: mago-navi-web
-          path: ${{ env.TARBALL }}
-          retention-days: 14
-
       - name: 배포 설정 확인
         if: env.HAS_TARGET != 'true'
         run: echo "::notice::DEPLOY_SSH_KEY 가 없어서 서버 배포는 건너뛰었어요. 이 파일 맨 위의 ‘처음 한 번 설정’을 참고해 넣어 주세요."
