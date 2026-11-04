@@ -4,7 +4,7 @@ import { lockedBy } from '../engine/choices'
 import type { Plan } from '../engine/plan'
 import { type FieldScore, isSuggestible } from '../engine/suggest'
 import { norm } from '../engine/search'
-import { TERM_LABEL } from '../lib/format'
+import { josa, TERM_LABEL } from '../lib/format'
 import { IconPin } from './icons'
 
 interface Props {
@@ -75,6 +75,7 @@ export function SubjectPicker({ plan, scores, onTogglePin, onToggleExclude }: Pr
           {shown.map((c) => {
             const st = status(c.subject)
             const f = scores.get(c.subject)
+            const lockedSubjects = locked.get(c.subject)?.join(', ') ?? ''
             return (
               <li key={c.subject} className={`picker-row is-${st}`}>
                 <div className="picker-main">
@@ -85,7 +86,7 @@ export function SubjectPicker({ plan, scores, onTogglePin, onToggleExclude }: Pr
                   <span className="picker-meta">
                     {c.where}
                     {st === 'on' && ' · 추천에 들어 있음'}
-                    {st === 'locked' && ` · 같은 세트의 ${locked.get(c.subject)?.join(', ')}을(를) 빼서 함께 빠져 있어요`}
+                    {st === 'locked' && ` · 같은 세트의 ${lockedSubjects}${josa(lockedSubjects, '을', '를')} 빼서 함께 빠져 있어요`}
                     {st === 'off' && isSuggestible(f) && (f.prior ? ' · 진로와 가까운 과목' : ` · 같은 분야 ${f.named}곳이 권함`)}
                   </span>
                 </div>

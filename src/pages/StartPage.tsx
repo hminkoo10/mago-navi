@@ -41,6 +41,12 @@ export function StartPage() {
 
   // 조건(profile)은 선택 사항
   const done: Record<StepKey, boolean> = { school: !!school, major: prefs.majors.length > 0, univ: prefs.univs.length > 0, profile: true }
+  const nextHint: Record<StepKey, string> = {
+    school: '학교를 먼저 골라 주세요',
+    major: '분야나 학과를 하나 이상 골라 주세요',
+    univ: '대학을 하나 이상 골라 주세요',
+    profile: '',
+  }
   // 앞 단계를 마쳐야 뒤 단계로 (주소로 바로 들어와도 마치지 않은 첫 단계를 보여 줌)
   const reachable = (i: number) => STEPS.slice(0, i).every((s) => done[s.key])
   const asked = STEPS.findIndex((s) => s.key === query.get('step'))
@@ -109,9 +115,12 @@ export function StartPage() {
           ) : (
             <span />
           )}
-          <button type="button" className="btn btn-primary btn-lg" disabled={!done[current]} onClick={next}>
-            {index === STEPS.length - 1 ? '결과 보기' : '다음'} <IconArrow />
-          </button>
+          <div className="start-next">
+            <button type="button" className="btn btn-primary btn-lg" disabled={!done[current]} aria-describedby={!done[current] ? 'start-next-hint' : undefined} onClick={next}>
+              {index === STEPS.length - 1 ? '결과 보기' : '다음'} <IconArrow />
+            </button>
+            {!done[current] && <p id="start-next-hint" className="muted small">{nextHint[current]}</p>}
+          </div>
         </div>
 
         {editor.open && (

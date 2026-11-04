@@ -23,7 +23,7 @@ const FAQ: [string, string][] = [
     '공동교육과정(여러 학교가 함께 여는 수업)이나 시도교육청 온라인학교로 들을 수 있어요. 신청은 보통 다니는 학교를 거쳐서 하니 담임 선생님이나 교육과정 담당 선생님께 먼저 물어보세요. 아래 "학교에 없는 과목 듣기"에 시도별 주소를 모아 뒀어요.',
   ],
   ['특성화고·특목고도 쓸 수 있나요?', '네. 학교를 고르면 학과 목록이 나와요. 다니는 학과를 고르면 그 학과 편제표로 계산해요.'],
-  ['우리 학교 편제표를 못 찾았어요.', '학교 홈페이지 교육과정 게시판에서 편제표 파일(PDF·한글·엑셀·사진)을 받아 올리면 표로 옮겨요. 직접 입력해도 돼요.'],
+  ['우리 학교 편제표를 못 찾았어요.', "PDF나 사진 파일은 '파일' 탭에서 올리고, 한글(HWP)·엑셀 파일은 열어서 표를 복사해 '텍스트' 탭에 붙여 넣어요."],
   ['불러온 편제표가 틀려요.', '내 과목 설계의 출처 탭에서 틀린 곳을 알려 주세요. 시작하기의 저장된 학교에서 표를 열어 직접 고칠 수도 있어요.'],
   ['입학년도는 어떻게 고르나요?', '고등학교에 들어간 해를 고르세요. 같은 학교라도 입학년도마다 편제표가 달라요.'],
   [
@@ -114,6 +114,19 @@ export function HelpPage() {
         <h1 className="page-title">도움말</h1>
         <p className="page-sub">마고 과목내비가 무엇을 계산하는지, 자료는 어디서 왔는지 정리했어요.</p>
       </header>
+
+      <section className="help-manual" aria-labelledby="manual-title">
+        <h2 id="manual-title" className="section-title">처음이라면 사용 설명서부터 보세요</h2>
+        <p>과목내비와 통합 클라우드·오답노트·마고 타종 쓰는 법을 그림과 함께 차례대로 설명해요.</p>
+        <div className="help-manual-links">
+          <a href={`${features.cloudUrl}/help/navi.html`} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
+            과목내비 사용 설명서 열기
+          </a>
+          <a href={`${features.cloudUrl}/help/`} target="_blank" rel="noopener noreferrer" className="small">
+            마고에듀 전체 설명서
+          </a>
+        </div>
+      </section>
 
       <nav className="toc" aria-label="목차">
         <a href="#faq">자주 묻는 질문</a>

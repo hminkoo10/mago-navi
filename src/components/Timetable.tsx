@@ -5,7 +5,7 @@ import type { Plan, Reason } from '../engine/plan'
 import type { Suggestion } from '../engine/suggest'
 import { NO_RANK } from '../engine/focus'
 import { termCredits } from '../engine/school'
-import { setWhyText, TERM_LABEL, univShorts } from '../lib/format'
+import { josa, setWhyText, TERM_LABEL, univShorts } from '../lib/format'
 import { IconPin } from './icons'
 
 const ALL_TERMS: TermId[] = ['1-1', '1-2', '2-1', '2-2', '3-1', '3-2']
@@ -38,7 +38,7 @@ function why(r: Reason | undefined): string {
 /** 꼭 듣기로 했지만 못 넣은 까닭. 세트 과목이면 무엇 때문인지까지 */
 function unplacedText(plan: Plan, s: string, locked: Map<string, string[]>): string {
   const by = locked.get(s)
-  if (by?.length) return `${s}: 같은 세트의 ${by.join(', ')}을(를) 빼서 넣을 수 없어요. 그 과목을 다시 넣거나 ${s}의 꼭 듣기를 풀어 주세요.`
+  if (by?.length) return `${s}: 같은 세트의 ${by.join(', ')}${josa(by.join(', '), '을', '를')} 빼서 넣을 수 없어요. 그 과목을 다시 넣거나 ${s}의 꼭 듣기를 풀어 주세요.`
   for (const { track, setIndex } of plan.tracks) {
     if (setIndex === null || !track.sets.some((set) => set.items.some((it) => it.subject === s))) continue
     if (!track.sets[setIndex].items.some((it) => it.subject === s))
@@ -62,7 +62,7 @@ export function Timetable({ plan, reasons, suggestions, setHints, onPickSet, mar
       <div className="toolbar">
         <label className="switch">
           <input type="checkbox" checked={showYear1} onChange={(e) => setShowYear1(e.target.checked)} />
-          1학년도 보기
+          1학년 과목도 보기
         </label>
         <span className="legend">
           <span className="lg lg-chosen" /> 권장과목으로 고른 과목 <span className="lg lg-pin" /> 꼭 듣기 <span className="lg lg-free" /> 고를 칸
@@ -226,15 +226,15 @@ export function Timetable({ plan, reasons, suggestions, setHints, onPickSet, mar
           {plan.warnings.map((w) => (
             <li key={`${w.subject}-${w.before}`}>
               {w.kind === 'not-offered'
-                ? `${w.subject}: 앞 과목인 ${w.before}이(가) 이 학교 편제표에 없어요.`
+                ? `${w.subject}: 앞 과목인 ${w.before}${josa(w.before, '이', '가')} 이 학교 편제표에 없어요.`
                 : w.kind === 'missing'
                   ? w.cause === 'excluded-prereq'
-                    ? `${w.subject}: 앞 과목인 ${w.before}을(를) 내가 뺐어요.`
+                    ? `${w.subject}: 앞 과목인 ${w.before}${josa(w.before, '을', '를')} 내가 뺐어요.`
                     : w.cause === 'pinned' && w.by?.length
-                      ? `${w.subject}: 앞 과목인 ${w.before}을(를) 넣을 칸을 꼭 듣기로 한 ${w.by.join('·')}이(가) 차지했어요.`
+                      ? `${w.subject}: 앞 과목인 ${w.before}${josa(w.before, '을', '를')} 넣을 칸을 꼭 듣기로 한 ${w.by.join('·')}${josa(w.by.join('·'), '이', '가')} 차지했어요.`
                       : w.cause === 'other-set' && w.by?.length
-                        ? `${w.subject}: ${w.by.join('·')} 세트를 골라 앞 과목인 ${w.before}을(를) 들을 수 없어요.`
-                        : `${w.subject}: 앞 과목인 ${w.before}을(를) 넣을 칸이 모자라요.`
+                        ? `${w.subject}: ${w.by.join('·')} 세트를 골라 앞 과목인 ${w.before}${josa(w.before, '을', '를')} 들을 수 없어요.`
+                        : `${w.subject}: 앞 과목인 ${w.before}${josa(w.before, '을', '를')} 넣을 칸이 모자라요.`
                   : `${w.subject}: 앞 과목 ${w.before}보다 먼저 배치돼 있어요.`}
             </li>
           ))}

@@ -1211,6 +1211,14 @@ a {
 .field-block {
   margin-bottom: 28px;
 }
+.start-next {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  max-width: 75%;
+  text-align: right;
+}
 .field-label {
   margin-bottom: 10px;
   color: var(--ink-2);
@@ -2394,6 +2402,29 @@ li:first-child > .pick-row {
 }
 
 /* ---- 도움말 ---- */
+.help-manual {
+  margin-bottom: 24px;
+  padding: 22px;
+  border: 1px solid var(--primary);
+  border-radius: 18px;
+  background: var(--primary-soft);
+}
+.help-manual > p {
+  margin-bottom: 16px;
+  color: var(--ink-2);
+}
+.help-manual-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+}
+.help-manual-links .btn {
+  height: auto;
+  min-height: 44px;
+  padding: 10px 16px;
+  white-space: normal;
+}
 .toc {
   display: flex;
   flex-wrap: wrap;

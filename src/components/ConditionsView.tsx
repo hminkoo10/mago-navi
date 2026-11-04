@@ -4,7 +4,7 @@ import { UNIV_BY_ID } from '../data/universities'
 import type { UnitRoute } from '../engine/focus'
 import type { Missing, Plan, UnitResult } from '../engine/plan'
 import { offerIndex } from '../engine/plan'
-import { clauseText, COVERAGE_LABEL, TERM_LABEL } from '../lib/format'
+import { clauseText, COVERAGE_LABEL, josa, TERM_LABEL } from '../lib/format'
 import { IconAlert, IconCheck } from './icons'
 
 interface Props {
@@ -38,7 +38,7 @@ export function ConditionsView({ plan, allUnits, selectedIds, skipped = [], focu
       .filter(Boolean)
       .join(', ')
     // 칸을 차지한 까닭(꼭 듣기 과목, 대신 고른 세트)을 알면 그대로 알려 줌
-    if (m.cause === 'pinned' && m.by?.length) return `꼭 듣기로 한 ${m.by.join('·')}이(가) ${where} 칸을 차지했어요.`
+    if (m.cause === 'pinned' && m.by?.length) return `꼭 듣기로 한 ${m.by.join('·')}${josa(m.by.join('·'), '이', '가')} ${where} 칸을 차지했어요.`
     if (m.cause === 'other-set' && m.by?.length) return `${m.by.join('·')} 세트를 골라 들을 수 없어요.`
     return `${where} 칸을 다른 권장과목이 먼저 차지했어요.`
   }

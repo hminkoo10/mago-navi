@@ -2,6 +2,7 @@ import { timingSafeEqual } from 'node:crypto'
 import { FINE_MAJORS, MAJOR_BY_ID } from '../src/data/majors'
 import { BANSONG_2026 } from '../src/data/schools/bansong2026'
 import { checkSchool, schoolFromLoose } from '../src/engine/school'
+import { safeHref } from '../src/lib/href'
 import { accountRoutes } from './account-api'
 import { adminRoutes } from './admin-api'
 import { dataRoutes } from './data-api'
@@ -778,6 +779,7 @@ export function createApi(options: ApiOptions = {}) {
     const s = call.services.settings.get()
     // 통합 클라우드 로그인 가능 여부 (MAGO_CLOUD_URL·MAGO_APP_SECRET). 그러면 AI는 사람마다 학원 AI나 내 키
     const mago = !!magoConfig(call.ctx.env)
+    const cloudUrl = safeHref(call.ctx.env.MAGO_CLOUD_URL)?.replace(/\/+$/, '')
     // 사용자 키 모드·통합 클라우드면 서버 AI 없이도 켜짐
     const ai = cfg !== null || s.userAiKey || mago
     return json({
@@ -787,6 +789,7 @@ export function createApi(options: ApiOptions = {}) {
       // 자동 읽기·파일 읽기·문장으로 찾기를 각자 고른 AI(학원 AI·내 Gemini 키)로 하는지
       userKey: s.userAiKey || mago,
       login: mago,
+      ...(cloudUrl ? { cloudUrl } : {}),
       read: ai && s.aiRead,
       import: ai && s.aiImport,
       match: ai && s.aiMatch,

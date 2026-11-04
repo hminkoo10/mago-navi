@@ -127,8 +127,8 @@ export default function App() {
   const message = toast
   useEffect(() => {
     if (!message) return
-    // 되돌리기 같은 버튼이 있으면 누를 틈을 더 준다 (7초, 없으면 2.8초)
-    const t = setTimeout(() => setToast(null), message.action ? 7000 : 2800)
+    // 되돌리기 같은 버튼이 있으면 누를 틈을 더 준다 (8초, 없으면 4.5초)
+    const t = setTimeout(() => setToast(null), message.action ? 8000 : 4500)
     return () => clearTimeout(t)
   }, [message])
 

@@ -369,7 +369,7 @@ export function SchoolStep({ onEdit, onLoaded }: Props) {
                     </span>
                   </button>
                   <button type="button" className="btn-icon" onClick={() => onEdit(s)} aria-label={`${s.name} 편제표 확인·고치기`} title="편제표 확인·고치기">
-                    표
+                    표 고치기
                   </button>
                   <button
                     type="button"

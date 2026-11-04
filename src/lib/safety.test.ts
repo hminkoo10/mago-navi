@@ -70,6 +70,24 @@ describe('서버 확인', () => {
     vi.stubGlobal('fetch', async () => json({ ai: true, login: true, notice: '점검' }))
     await expect(health()).resolves.toMatchObject({ server: true, ai: true, login: true, signup: true, notice: '점검' })
   })
+
+  it.each([
+    [' https://cloud.example.com/// ', 'https://cloud.example.com'],
+    ['http://localhost:3000/', 'http://localhost:3000'],
+  ])('통합 클라우드 주소를 읽고 끝 /를 뺀다: %s', async (configured, cloudUrl) => {
+    vi.stubGlobal('fetch', async () => json({ cloudUrl: configured }))
+    await expect(health()).resolves.toMatchObject({ cloudUrl })
+  })
+
+  it.each([undefined, null, '', 123, 'javascript:alert(1)', 'data:text/html,hello', 'ftp://cloud.example.com', '//cloud.example.com', 'https://'])
+    ('주소가 없거나 잘못되면 기본 설명서 주소를 쓴다: %s', async (cloudUrl) => {
+      vi.stubGlobal('fetch', async () => json({ cloudUrl }))
+      await expect(health()).resolves.toMatchObject({ cloudUrl: 'https://mago.milky.kr' })
+    })
+
+  it('정적 배포에서도 기본 설명서 주소를 쓴다', () => {
+    expect(NO_FEATURES).toMatchObject({ cloudUrl: 'https://mago.milky.kr' })
+  })
 })
 
 describe('계정 저장 요청', () => {

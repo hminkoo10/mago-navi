@@ -1,7 +1,7 @@
 import { type FormEvent, useState } from 'react'
 import { FormError } from '../components/Form'
 import { Link } from '../components/Link'
-import { type AcademyAiState, type AiSource, ApiError, auth, isAdminRole, magoLoginUrl, type Me, myAi, myAiKey, ROLE_TEXT } from '../lib/api'
+import { type AcademyAiState, type AiSource, ApiError, auth, isAdminRole, MAGO_ROLE_TEXT, magoLoginUrl, type Me, myAi, myAiKey, ROLE_TEXT } from '../lib/api'
 import { useApp } from '../lib/app'
 import { dateTime } from '../lib/format'
 import type { SyncState } from '../lib/store'
@@ -15,9 +15,6 @@ const SYNC_TEXT: Record<SyncState, string> = {
   error: '계정에 저장하지 못했어요. 고친 내용은 이 기기에 남아 있고, 연결되면 다시 저장해요.',
   rejected: '계정에 저장하지 못했어요.',
 }
-
-/** 통합 클라우드 역할 */
-const MAGO_ROLE_TEXT: Record<string, string> = { admin: '통합 클라우드 운영자', director: '원장', teacher: '선생님', student: '학생' }
 
 const PROVIDER_TEXT: Record<string, string> = { gemini: 'Gemini', openai: 'OpenAI 호환', anthropic: 'Claude' }
 

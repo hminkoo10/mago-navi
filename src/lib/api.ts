@@ -1,4 +1,5 @@
 import type { School, Term, TermId, Track } from '../data/schema'
+import { safeHref } from './href'
 
 // 서버 /api 호출. 서버가 없거나(정적 배포) AI 키가 없으면 AI 기능을 숨기고 키워드 검색만 쓴다.
 
@@ -54,6 +55,8 @@ export interface Features {
   userKey: boolean
   /** 통합 클라우드 로그인 가능 여부 (서버에 MAGO_CLOUD_URL·MAGO_APP_SECRET 필요) */
   login: boolean
+  /** 통합 클라우드 설명서 주소 (끝 / 없이) */
+  cloudUrl: string
   signup: boolean
   notice: string
 }
@@ -67,6 +70,7 @@ export const NO_FEATURES: Features = {
   match: false,
   userKey: false,
   login: false,
+  cloudUrl: 'https://mago.milky.kr',
   signup: false,
   notice: '',
 }
@@ -95,6 +99,7 @@ export async function health(): Promise<Features> {
     match: !!h.match,
     userKey: !!h.userKey,
     login: !!h.login,
+    cloudUrl: safeHref(h.cloudUrl)?.replace(/\/+$/, '') || NO_FEATURES.cloudUrl,
     signup: h.signup !== false,
     notice: typeof h.notice === 'string' ? h.notice.slice(0, 200) : '',
   }
@@ -153,6 +158,9 @@ export interface Me {
 export const isAdminRole = (role: Role) => role === 'admin' || role === 'owner'
 
 export const ROLE_TEXT: Record<Role, string> = { owner: '대표 관리자', admin: '관리자', user: '일반 계정' }
+
+/** 통합 클라우드 역할 */
+export const MAGO_ROLE_TEXT: Record<string, string> = { admin: '통합 클라우드 운영자', director: '원장', teacher: '선생님', student: '학생' }
 
 /** 통합 클라우드 로그인 시작 주소 (페이지 이동). 끝나면 next로 돌아온다 */
 export const magoLoginUrl = (next?: string | null) => `/api/auth/mago${next ? `?next=${encodeURIComponent(next)}` : ''}`

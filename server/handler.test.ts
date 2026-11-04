@@ -51,6 +51,22 @@ describe('AI 설정', () => {
 })
 
 describe('/api/health', () => {
+  it.each([
+    [' https://cloud.example.com/// ', 'https://cloud.example.com'],
+    ['http://localhost:3000/', 'http://localhost:3000'],
+  ])('로그인 비밀값 없이도 설명서 주소 %s를 보낸다', async (configured, cloudUrl) => {
+    const api = testApi({ store: new Store(':memory:') })
+    const res = await api(new Request('http://app.test/api/health'), { ip: '1.1.1.1', env: { MAGO_CLOUD_URL: configured } })
+    expect(await res.json()).toMatchObject({ cloudUrl, login: false })
+  })
+
+  it.each([undefined, '', '   ', 'javascript:alert(1)', 'data:text/html,hello', 'ftp://cloud.example.com', '//cloud.example.com', 'https://'])
+    ('설명서 주소가 없거나 HTTP/HTTPS가 아니면 필드를 생략한다: %s', async (cloudUrl) => {
+      const api = testApi({ store: new Store(':memory:') })
+      const res = await api(new Request('http://app.test/api/health'), { ip: '1.1.1.1', env: { MAGO_CLOUD_URL: cloudUrl } })
+      expect(await res.json()).not.toHaveProperty('cloudUrl')
+    })
+
   it('키가 없으면 ai=false, 있으면 true. 키 값은 절대 내보내지 않는다', async () => {
     const api = testApi({ store: new Store(':memory:') })
     const off = await api(new Request('http://app.test/api/health'), { ip: '1.1.1.1', env: {} })

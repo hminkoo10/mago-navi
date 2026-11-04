@@ -5,7 +5,7 @@ import { useLocation } from '../lib/router'
 
 /** 서버가 통합 클라우드 로그인을 마치지 못하고 돌려보낼 때 붙이는 error 코드 → 안내 */
 const ERRORS: Record<string, string> = {
-  unavailable: '지금은 로그인을 쓸 수 없어요. 서버에 통합 클라우드 로그인이 아직 설정되지 않았어요.',
+  unavailable: '지금은 로그인을 쓸 수 없어요. 서버에 통합 클라우드 로그인이 아직 설정되지 않았어요. 학원 원장님이나 관리자에게 알려 주세요.',
   busy: '로그인 요청이 너무 많아요. 잠시 후 다시 해 주세요.',
   expired: '로그인 시간이 지났거나 다른 창에서 시작한 로그인이에요. 다시 해 주세요.',
   denied: '통합 클라우드에서 이 프로그램을 쓸 권한을 받지 못했어요. 원장님이나 관리자에게 문의해 주세요.',
@@ -26,7 +26,7 @@ export function LoginPage() {
     return (
       <div className="wrap gate">
         <h1 className="page-title">로그인을 쓸 수 없어요</h1>
-        <p className="page-sub">이 주소에서는 서버 기능이 꺼져 있어요. 고른 내용은 이 기기에 저장돼요.</p>
+        <p className="page-sub">이 주소에서는 서버 기능이 꺼져 있어요. 학원 원장님이나 관리자에게 알려 주세요. 고른 내용은 이 기기에 저장돼요.</p>
       </div>
     )
 
@@ -69,7 +69,7 @@ export function LoginPage() {
             마고에듀 통합 클라우드 계정으로 로그인
           </a>
         ) : (
-          <p className="callout is-warn">지금은 로그인을 쓸 수 없어요. 서버에 통합 클라우드 로그인이 아직 설정되지 않았어요.</p>
+          <p className="callout is-warn">{ERRORS.unavailable}</p>
         )}
         <div className="auth-foot">
           <p className="muted">계정은 통합 클라우드에서 만들어요. 계정이 없으면 원장님께 만들어 달라고 해 주세요. 이 프로그램은 비밀번호를 받지 않아요.</p>

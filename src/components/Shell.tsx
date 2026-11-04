@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { DATA_DATE } from '../data/meta'
-import { isAdminRole, ROLE_TEXT } from '../lib/api'
+import { isAdminRole, MAGO_ROLE_TEXT, ROLE_TEXT } from '../lib/api'
 import { shortSchool, useApp } from '../lib/app'
 import { useUnseenUpdates } from '../lib/updates'
 import { UNIV_BY_ID } from '../data/universities'
@@ -21,7 +21,7 @@ export function Brand() {
 
 /** 로그인한 사람 메뉴: 내 계정, 관리, 로그아웃 */
 function AccountMenu() {
-  const { user, signOut } = useApp()
+  const { user, signOut, features } = useApp()
   const [open, setOpen] = useState(false)
   const box = useRef<HTMLDivElement>(null)
   const { path } = useLocation()
@@ -65,12 +65,15 @@ function AccountMenu() {
             <strong>{user.name || user.email}</strong>
             <span>
               {user.name ? `${user.email} · ` : ''}
-              {user.magoRole === 'student' ? '학생' : ROLE_TEXT[user.role]}
+              {(user.magoRole && MAGO_ROLE_TEXT[user.magoRole]) || ROLE_TEXT[user.role]}
             </span>
           </div>
           <Link to="/account" role="menuitem" className="acct-item">
             내 계정
           </Link>
+          <a href={`${features.cloudUrl}/help/navi.html`} target="_blank" rel="noopener noreferrer" role="menuitem" className="acct-item" onClick={() => setOpen(false)}>
+            사용 설명서
+          </a>
           {user.magoRole !== 'student' && isAdminRole(user.role) && (
             <Link to="/admin" role="menuitem" className="acct-item">
               관리
@@ -258,7 +261,7 @@ export function NoticeBar() {
 export const SOURCE_URL = 'https://github.com/hminkoo10/mago-navi'
 
 export function Footer() {
-  const { user } = useApp()
+  const { user, features } = useApp()
   return (
     <footer className="site-foot">
       <div className="wrap foot-in">
@@ -268,6 +271,9 @@ export function Footer() {
         </div>
         <nav className="foot-links" aria-label="안내">
           <Link to="/help">도움말</Link>
+          <a href={`${features.cloudUrl}/help/navi.html`} target="_blank" rel="noopener noreferrer">
+            사용 설명서
+          </a>
           <Link to="/help#sources">자료 출처</Link>
           <Link to="/help#privacy">개인정보 안내</Link>
           <Link to="/universities">대학 권장과목</Link>

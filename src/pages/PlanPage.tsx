@@ -241,7 +241,7 @@ export function PlanPage() {
             <IconPrint /> 인쇄
           </button>
           <button type="button" className="btn" onClick={() => void copyList()} disabled={!plan}>
-            목록 복사
+            수강 신청 목록 복사
           </button>
           <button type="button" className="btn btn-danger-quiet" onClick={() => setResetOpen(true)}>
             초기화
