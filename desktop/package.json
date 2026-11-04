@@ -1,7 +1,7 @@
 {
   "name": "mago-navi-pc",
   "productName": "MagoNavi",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "마고 과목내비 PC - 마고에듀 통합 클라우드에서 켜서 통합 클라우드 계정으로 자동 로그인하는 마고 과목내비 창",
   "main": "src/main.js",
   "author": {

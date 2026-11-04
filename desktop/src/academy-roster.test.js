@@ -18,6 +18,25 @@ describe('학원 명단 검증', () => {
       me: { id: user.id, name: user.name, role: user.role }, students: [student] });
     expect(raw.ai.apiKey).toBe('secret'); // 원본 파일/객체는 수정하지 않음
   });
+  it('유효한 학교 코드 쌍만 추가로 전달하며 나머지 필드는 버린다', () => {
+    const coded = { ...student, schoolOffice: 'J10', schoolCode: '0123456' };
+    const raw = fixture({ students: [{ ...coded, memo: '개인 메모', future: true }] });
+    expect(parseRoster(raw, user).students).toEqual([coded]);
+    expect(raw.students[0].memo).toBe('개인 메모');
+  });
+  it.each([
+    { schoolOffice: 'J10' }, { schoolCode: '7530847' },
+    { schoolOffice: '', schoolCode: '7530847' }, { schoolOffice: 'j10', schoolCode: '7530847' },
+    { schoolOffice: 'J1', schoolCode: '7530847' }, { schoolOffice: 'J100', schoolCode: '7530847' },
+    { schoolOffice: ' J10', schoolCode: '7530847' }, { schoolOffice: 'J10\n', schoolCode: '7530847' },
+    { schoolOffice: null, schoolCode: '7530847' }, { schoolOffice: ['J10'], schoolCode: '7530847' },
+    { schoolOffice: 'J10', schoolCode: '' }, { schoolOffice: 'J10', schoolCode: '753084' },
+    { schoolOffice: 'J10', schoolCode: '75308470' }, { schoolOffice: 'J10', schoolCode: '753084x' },
+    { schoolOffice: 'J10', schoolCode: '7530847\n' }, { schoolOffice: 'J10', schoolCode: 7530847 },
+    { schoolOffice: 'J10', schoolCode: null }, { schoolOffice: 'J10', schoolCode: ['7530847'] },
+  ])('학교 코드가 불완전하거나 잘못되면 둘 다 버리고 학생은 유지한다: %#', (codes) => {
+    expect(parseRoster(fixture({ students: [{ ...student, ...codes }] }), user).students).toEqual([student]);
+  });
   it.each([null, [], 'json', fixture({ format: 2 }), fixture({ academy: [] }), fixture({ updatedAt: '1' }),
     fixture({ students: {} }), fixture({ students: Array(MAX_STUDENTS + 1).fill(student) }),
     fixture({ purged: ['../x'] }), fixture({ me: { ...user, id: 'other' } }), fixture({ me: { ...user, role: 'student' } }),

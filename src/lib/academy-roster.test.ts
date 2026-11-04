@@ -22,6 +22,45 @@ describe('학교명 매칭', () => {
   })
 })
 
+describe('학교 코드 매칭', () => {
+  const school = { name: '반송고등학교', office: 'J10', code: '7530847' }
+  const codes = { schoolOffice: school.office, schoolCode: school.code }
+  it('동명 학교 중 교육청·학교 코드가 모두 같은 학교를 고른다', () => {
+    const hits = [{ ...school, office: 'B10' }, { ...school, code: '7530848' }, school]
+    expect(matchRosterSchool('반송고', hits, true, codes)).toBe(school)
+  })
+  it('이름보다 코드를 우선한다', () => {
+    const renamed = { ...school, name: '새이름고등학교' }
+    expect(matchRosterSchool('반송고', [{ ...school, code: '7530848' }, renamed], true, codes)).toBe(renamed)
+  })
+  it('검색 결과가 잘려도 코드가 같으면 고를 수 있다', () => {
+    const hits = [0, 1, 2, 3].map((n) => ({ ...school, code: `753084${n}` }))
+    expect(matchRosterSchool('반송고', [...hits, school], false, codes)).toBe(school)
+  })
+  it.each([{ schoolOffice: 'B10', schoolCode: school.code }, { schoolOffice: school.office, schoolCode: '7530848' }])(
+    '교육청·학교 코드 중 하나만 같으면 코드 일치로 보지 않는다: %j', (other) => {
+      expect(matchRosterSchool('다른고', [school], true, other)).toBeNull()
+    },
+  )
+  it('코드 일치가 없으면 기존의 유일한 정규화 이름 매칭으로 돌아간다', () => {
+    expect(matchRosterSchool(' 반 송 고 ', [school], true, { ...codes, schoolCode: '7530848' })).toBe(school)
+  })
+  it.each([{ schoolOffice: school.office }, { schoolCode: school.code }])('코드 쌍이 없으면 이름으로만 고른다: %j', (partial) => {
+    expect(matchRosterSchool('반송고', [school], true, partial)).toBe(school)
+    expect(matchRosterSchool('다른고', [school], true, partial)).toBeNull()
+  })
+  it('코드 일치도 없고 이름도 모호하거나 검색이 불완전하면 수동 선택한다', () => {
+    const missing = { ...codes, schoolCode: '7530848' }
+    expect(matchRosterSchool('반송고', [school, { ...school, office: 'B10' }], true, missing)).toBeNull()
+    expect(matchRosterSchool('반송', [school], true, missing)).toBeNull()
+    expect(matchRosterSchool('반송고', [], true, missing)).toBeNull()
+    expect(matchRosterSchool('반송고', [school], false, missing)).toBeNull()
+  })
+  it('코드가 같은 결과도 여러 개면 임의로 고르지 않는다', () => {
+    expect(matchRosterSchool('반송고', [school, { ...school, name: '새이름고등학교' }], true, codes)).toBeNull()
+  })
+})
+
 describe('학년 → 입학년도', () => {
   const now = new Date('2026-11-04T00:00:00Z')
   it.each(['고2', '고 2 학년', '고등학교2학년', '2학년', '2'])('%s 해석', (grade) => {

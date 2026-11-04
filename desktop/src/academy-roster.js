@@ -29,7 +29,12 @@ function parseRoster(raw, user) {
     if (!text(s.name, 100) || !s.name.trim()) continue;
     if (s.school !== undefined && !text(s.school, 200)) continue;
     if (s.grade !== undefined && !text(s.grade, 30)) continue;
-    students.push({ id: s.id, name: s.name.trim(), school: (s.school || '').trim(), grade: (s.grade || '').trim() });
+    const student = { id: s.id, name: s.name.trim(), school: (s.school || '').trim(), grade: (s.grade || '').trim() };
+    if (text(s.schoolOffice, 3) && /^[A-Z][0-9]{2}$/.test(s.schoolOffice) && text(s.schoolCode, 7) && /^[0-9]{7}$/.test(s.schoolCode)) {
+      student.schoolOffice = s.schoolOffice;
+      student.schoolCode = s.schoolCode;
+    }
+    students.push(student);
   }
   // memo·members·AI 설정/키·계정 정보·로컬 경로는 노출하지 않는다.
   return { academy: { id: academy.id, name: academy.name }, me: { id: me.id, name: me.name, role: me.role }, students };

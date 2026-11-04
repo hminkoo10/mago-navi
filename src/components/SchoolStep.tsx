@@ -94,7 +94,7 @@ export function SchoolStep({ onEdit, onLoaded }: Props) {
   const [hits, setHits] = useState<SchoolHit[] | null>(null)
   const [searchMsg, setSearchMsg] = useState('')
   const [searching, setSearching] = useState(false)
-  const [rosterSearch, setRosterSearch] = useState<string | null>(null)
+  const [rosterSearch, setRosterSearch] = useState<RosterStudent | null>(null)
   const [rosterMatched, setRosterMatched] = useState(false)
   const [rosterHint, setRosterHint] = useState('')
   const [hit, setHit] = useState<SchoolHit | null>(null)
@@ -123,8 +123,8 @@ export function SchoolStep({ onEdit, onLoaded }: Props) {
           setHits(r.schools)
           setSearchMsg(r.schools.length ? '' : '찾는 학교가 없어요. 이름을 줄여서 적어 보세요. 예: 반송고')
           if (rosterSearch) {
-            // 나이스는 키가 없으면 최대 5건. 잘린 결과에서는 유일하다고 단정하지 않는다.
-            const matched = matchRosterSchool(rosterSearch, r.schools, r.schools.length < 5)
+            // 나이스는 키가 없으면 최대 5건. 코드 일치가 없으면 잘린 결과에서 이름만으로 단정하지 않는다.
+            const matched = matchRosterSchool(rosterSearch.school, r.schools, r.schools.length < 5, rosterSearch)
             if (matched) {
               setHit(matched)
               setRosterMatched(true)
@@ -269,7 +269,7 @@ export function SchoolStep({ onEdit, onLoaded }: Props) {
     setSearchMsg('')
     setSearching(false)
     setQ(normalizeSchoolName(s.school))
-    setRosterSearch(s.school || null)
+    setRosterSearch(s.school ? s : null)
     setRosterHint(!s.school ? '명단에 학교가 없어요. 학교를 직접 골라 주세요.' : c === null ? '이름·학교·학년을 불러왔어요. 학년을 입학년도로 확정할 수 없어 입학년도를 직접 골라 주세요.' : '명단의 학교·학년으로 채웠어요. 학교와 입학년도를 확인해 주세요.')
   }
   const nativeStudent = students.roster?.students.find((s) => s.id === students.current?.id)
