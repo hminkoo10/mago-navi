@@ -52,10 +52,10 @@ function AiChoiceCard() {
     ai.source === 'own' || academy.state === 'ready'
       ? ''
       : user.aiKey?.ok
-        ? '학원 AI를 못 쓰는 동안에는 등록한 내 키로 해요.'
+        ? '학원 AI를 못 쓰는 동안에는 등록한 내 키로 써요.'
         : ai.fallback
-          ? '학원 AI를 못 쓰는 동안에는 운영자 서버 연결로 해요.'
-          : '그동안 자동 기능을 쓰려면 아래에 내 키를 등록하세요.'
+          ? '학원 AI를 못 쓰는 동안에는 운영자 서버 연결로 써요.'
+          : '그동안 AI 기능을 쓰려면 아래에 내 키를 등록하세요.'
 
   const choose = async (source: AiSource) => {
     if (source === ai.source) return
@@ -63,7 +63,7 @@ function AiChoiceCard() {
     try {
       const r = await myAi.set(source)
       setUser({ ...user, ai: r.ai })
-      notify(source === 'own' ? '이제 자동 기능을 내 Gemini API 키로 해요.' : '이제 자동 기능을 학원 AI로 해요.')
+      notify(source === 'own' ? '이제 AI 기능을 내 Gemini API 키로 써요.' : '이제 AI 기능을 학원 AI로 써요.')
     } catch (err) {
       notify(err instanceof ApiError ? err.message : '바꾸지 못했어요.')
     } finally {
@@ -73,9 +73,9 @@ function AiChoiceCard() {
 
   return (
     <section className="panel-card" id="ai">
-      <h2 className="card-title">자동 기능에 쓸 연결</h2>
+      <h2 className="card-title">AI 기능에 쓸 연결</h2>
       <p className="card-sub">편제표·파일 읽기와 문장 검색에 쓸 연결을 골라요.</p>
-      <div className="segmented segmented-2" role="radiogroup" aria-label="자동 기능에 쓸 연결">
+      <div className="segmented segmented-2" role="radiogroup" aria-label="AI 기능에 쓸 연결">
         {(
           [
             ['academy', '학원 AI', '원장님이 정한 연결 (기본)'],
@@ -133,7 +133,7 @@ function AiKeyCard() {
       setUser({ ...user, aiKey: r.aiKey })
       setValue('')
       setEditing(false)
-      notify(r.note ? `키를 등록했어요. ${r.note}` : mago ? '키를 등록했어요.' : '키를 등록했어요. 이제 자동 기능을 내 키로 써요.')
+      notify(r.note ? `키를 등록했어요. ${r.note}` : mago ? '키를 등록했어요.' : '키를 등록했어요. 이제 AI 기능을 내 키로 써요.')
       if (mago) void refreshMe(setUser)
     } catch (err) {
       setError(err instanceof ApiError ? err.message : '키를 등록하지 못했어요.')
@@ -227,7 +227,7 @@ function AiKeyCard() {
         </form>
       )}
       <p className="fine" id="ai-key-help">
-        키는 암호화해서 저장하고, 자동 기능을 쓸 때만 Google로 보내요. 등록할 때 짧은 질문 하나로 맞는 키인지 확인해요. 키는 다른 사람에게 보내거나 채팅에 올리지
+        키는 암호화해서 저장하고, AI 기능을 쓸 때만 Google로 보내요. 등록할 때 짧은 질문 하나로 맞는 키인지 확인해요. 키는 다른 사람에게 보내거나 채팅에 올리지
         마세요. <Link to="/help/gemini-key">발급 방법 보기</Link>
       </p>
     </section>
@@ -334,7 +334,7 @@ export function AccountPage() {
 
         {user.magoRole === 'student' && (
           <section className="panel-card">
-            <h2 className="card-title">자동 기능</h2>
+            <h2 className="card-title">AI 기능</h2>
             <p className="card-sub">{user.aiMode === 'teacher' ? '담당 선생님의 키로 이용해요.' : '학원 AI로 이용해요.'} 설정은 선생님이 정해요.</p>
             {user.ai?.message && <p className="callout is-warn">{user.ai.message}</p>}
           </section>

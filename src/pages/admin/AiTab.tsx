@@ -227,7 +227,7 @@ function ProviderForm({
       </p>
       {d.kind === 'google' && (
         <p className="field-hint">
-          키는 Google AI Studio의 API 키 메뉴에서 받아요. 무료 등급은 모델마다 분당·하루 요청 수가 정해져 있고(AI Studio에서 확인), 넘으면 그날은 자동 기능이
+          키는 Google AI Studio의 API 키 메뉴에서 받아요. 무료 등급은 모델마다 분당·하루 요청 수가 정해져 있고(AI Studio에서 확인), 넘으면 그날은 AI 기능이
           멈춰요. 무료 등급에서는 보낸 내용과 답을 Google이 제품 개선에 쓰고 검토자가 읽을 수 있어서, 이 연결을 쓰는 동안에는 개인정보 안내와 입력 칸에 그
           사실을 알려요.
         </p>
@@ -315,7 +315,7 @@ export function AiTab() {
       <section className="panel-card">
         <h2 className="card-title">지금 쓰는 연결</h2>
         {s.broken ? (
-          <p className="callout is-warn">고른 연결의 키를 풀 수 없어 자동 기능이 꺼져 있어요. 그 연결의 키를 다시 넣거나 다른 연결을 고르세요.</p>
+          <p className="callout is-warn">고른 연결의 키를 풀 수 없어 AI 기능이 꺼져 있어요. 그 연결의 키를 다시 넣거나 다른 연결을 고르세요.</p>
         ) : s.using ? (
           <p className="ai-using">
             <strong>{s.using.name}</strong>

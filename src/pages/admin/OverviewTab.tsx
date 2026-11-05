@@ -61,9 +61,9 @@ export function OverviewTab({ go }: { go: (tab: string) => void }) {
           <p className="card-sub">
             {data.ai
               ? '연결돼 있어요. 한도는 설정에서 바꿔요.'
-              : '연결이 없어요. 자동 처리 연결에서 추가하세요.'}{' '}
+              : '연결이 없어요. AI 연결에서 추가하세요.'}{' '}
             <button type="button" className="btn-link" onClick={() => go('ai')}>
-              자동 처리 연결
+              AI 연결
             </button>
           </p>
           <ul className="usage">

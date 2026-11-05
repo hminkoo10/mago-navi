@@ -19,7 +19,7 @@ const TABS = [
   ['reports', '신고'],
   ['data', '대입 자료'],
   ['settings', '설정'],
-  ['ai', '자동 처리 연결'],
+  ['ai', 'AI 연결'],
   ['activity', '사용자 로그'],
   ['log', '관리 기록'],
 ] as const
