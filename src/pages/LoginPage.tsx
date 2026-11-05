@@ -5,12 +5,12 @@ import { useLocation } from '../lib/router'
 
 /** 서버가 통합 클라우드 로그인을 마치지 못하고 돌려보낼 때 붙이는 error 코드 → 안내 */
 const ERRORS: Record<string, string> = {
-  unavailable: '지금은 로그인을 쓸 수 없어요. 서버에 통합 클라우드 로그인이 아직 설정되지 않았어요. 학원 원장님이나 관리자에게 알려 주세요.',
-  busy: '로그인 요청이 너무 많아요. 잠시 후 다시 해 주세요.',
-  expired: '로그인 시간이 지났거나 다른 창에서 시작한 로그인이에요. 다시 해 주세요.',
-  denied: '통합 클라우드에서 이 프로그램을 쓸 권한을 받지 못했어요. 원장님이나 관리자에게 문의해 주세요.',
-  failed: '통합 클라우드 로그인을 마치지 못했어요. 잠시 후 다시 해 주세요.',
-  disabled: '이용이 정지된 계정이에요. 관리자에게 문의해 주세요.',
+  unavailable: '지금은 로그인을 쓸 수 없어요. 서버에 통합 클라우드 로그인이 아직 설정되지 않았어요. 학원 원장님이나 관리자에게 알리세요.',
+  busy: '로그인 요청이 너무 많아요. 잠시 후 다시 시도하세요.',
+  expired: '로그인 시간이 지났거나 다른 창에서 시작한 로그인이에요. 다시 시도하세요.',
+  denied: '통합 클라우드에서 이 프로그램을 쓸 권한을 받지 못했어요. 원장님이나 관리자에게 문의하세요.',
+  failed: '통합 클라우드 로그인을 마치지 못했어요. 잠시 후 다시 시도하세요.',
+  disabled: '이용이 정지된 계정이에요. 관리자에게 문의하세요.',
   closed: '지금은 처음 쓰는 계정을 받지 않아요. 이미 쓰던 계정만 로그인할 수 있어요.',
 }
 
@@ -26,7 +26,7 @@ export function LoginPage() {
     return (
       <div className="wrap gate">
         <h1 className="page-title">로그인을 쓸 수 없어요</h1>
-        <p className="page-sub">이 주소에서는 서버 기능이 꺼져 있어요. 학원 원장님이나 관리자에게 알려 주세요. 고른 내용은 이 기기에 저장돼요.</p>
+        <p className="page-sub">서버 기능이 꺼져 있어요. 고른 내용은 이 기기에 저장돼요.</p>
       </div>
     )
 
@@ -55,8 +55,7 @@ export function LoginPage() {
       <div className="auth-card">
         <h1 className="auth-title">로그인</h1>
         <p className="auth-sub">
-          마고 과목내비는 마고에듀 통합 클라우드 계정으로 로그인해 써요. 학원 학생 명단을 함께 쓰고, 학생마다 과목 설계를 저장해 다른 기기에서도 이어서 볼 수
-          있어요.
+            통합 클라우드 계정으로 로그인해요. 학생별 설계를 다른 기기에서도 이어서 봐요.
         </p>
         {error && (
           <p className="form-error" role="alert">
@@ -72,7 +71,7 @@ export function LoginPage() {
           <p className="callout is-warn">{ERRORS.unavailable}</p>
         )}
         <div className="auth-foot">
-          <p className="muted">계정은 통합 클라우드에서 만들어요. 계정이 없으면 원장님께 만들어 달라고 해 주세요. 이 프로그램은 비밀번호를 받지 않아요.</p>
+          <p className="muted">계정은 통합 클라우드에서 만들어요. 이 프로그램은 비밀번호를 받지 않아요.</p>
           <p className="muted">
             로그인·설계 저장·편제표 읽기 같은 이용 기록을 남겨요. 자세한 것은 <Link to="/help#privacy">개인정보 안내</Link>에 있어요.
           </p>

@@ -57,13 +57,13 @@ export function OverviewTab({ go }: { go: (tab: string) => void }) {
 
       <div className="admin-cols">
         <section className="panel-card">
-          <h2 className="card-title">오늘 AI 사용량</h2>
+          <h2 className="card-title">오늘 자동 처리 사용량</h2>
           <p className="card-sub">
             {data.ai
-              ? 'AI가 연결돼 있어요. 한도는 설정에서, 쓰는 AI는 AI 연결에서 바꿔요.'
-              : 'AI가 연결돼 있지 않아요. AI 연결에서 연결을 추가하고 골라 주세요.'}{' '}
+              ? '연결돼 있어요. 한도는 설정에서 바꿔요.'
+              : '연결이 없어요. 자동 처리 연결에서 추가하세요.'}{' '}
             <button type="button" className="btn-link" onClick={() => go('ai')}>
-              AI 연결
+              자동 처리 연결
             </button>
           </p>
           <ul className="usage">

@@ -245,7 +245,7 @@ export function CurriculaTab() {
           ))}
         </div>
       </div>
-      <p className="hint">학생들이 학교를 고르면 서버가 읽어 저장한 편제표예요. 같은 학교·입학년도·학과면 확인된 것, 없으면 가장 최근 것을 보여 줘요.</p>
+      <p className="hint">학생이 고른 학교의 편제표예요. 확인된 표를 먼저 보여 줘요.</p>
 
       {list.error && <p className="form-error">{list.error}</p>}
       <div className={`table-wrap${list.loading ? ' is-loading' : ''}`}>

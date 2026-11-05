@@ -19,7 +19,7 @@ function AddStudent({ onDone, onCancel }: { onDone: () => void; onCancel: () => 
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
-    if (!name.trim()) return setError('학생 이름을 적어 주세요.')
+    if (!name.trim()) return setError('학생 이름을 적으세요.')
     setBusy(true)
     setError('')
     try {
@@ -56,7 +56,7 @@ function AddStudent({ onDone, onCancel }: { onDone: () => void; onCancel: () => 
           {error}
         </p>
       )}
-      <p className="fine">담당 선생님은 나로 정해요. 통합 클라우드의 학생 명단에도 함께 추가돼요.</p>
+      <p className="fine">담당은 나로 정하고 학생 명단에 추가해요.</p>
       <div className="row-btns">
         <button type="submit" className="btn btn-primary btn-sm" disabled={busy}>
           {busy ? '추가하는 중' : '추가하고 열기'}
@@ -133,10 +133,10 @@ export function StudentList({ onPicked }: { onPicked?: () => void }) {
         </ul>
       ) : (
         <p className="stu-empty muted">
-          {q.trim() ? '찾는 학생이 없어요.' : shown === 'mine' ? '내가 담당하는 학생이 없어요. 전체에서 골라 주세요.' : '아직 학생이 없어요. 학생을 추가해 주세요.'}
+          {q.trim() ? '찾는 학생이 없어요.' : shown === 'mine' ? '내가 담당하는 학생이 없어요. 전체에서 고르세요.' : '아직 학생이 없어요. 학생을 추가하세요.'}
         </p>
       )}
-      {hidden > 0 && <p className="fine">지운 학생 {hidden}명은 목록에서 숨겼어요. 지운 뒤 {purgeDays}일 안에는 통합 클라우드의 학생 명단에서 되살릴 수 있어요.</p>}
+      {hidden > 0 && <p className="fine">지운 학생 {hidden}명은 숨겼어요. {purgeDays}일 안에 되살릴 수 있어요.</p>}
       <button type="button" className="btn btn-sm stu-add-btn" onClick={() => setAdding(true)}>
         <IconPlus /> 학생 추가
       </button>

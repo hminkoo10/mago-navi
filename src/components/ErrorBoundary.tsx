@@ -17,7 +17,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, { failed: 
     return (
       <main className="wrap gate" role="alert">
         <h1 className="page-title">화면을 보여 주지 못했어요</h1>
-        <p className="page-sub">새로고침해 주세요. 고른 설계는 지워지지 않아요.</p>
+        <p className="page-sub">새로고침하세요. 고른 설계는 지워지지 않아요.</p>
         <button type="button" className="btn btn-primary btn-lg" onClick={() => location.reload()}>
           새로고침
         </button>

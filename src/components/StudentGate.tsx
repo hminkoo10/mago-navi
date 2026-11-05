@@ -10,7 +10,7 @@ export function StudentGate() {
   if (user?.magoRole === 'student') return (
     <div className="wrap stu-gate" role={students.error ? 'alert' : 'status'}>
       <h1 className="page-title">내 설계를 여는 중이에요</h1>
-      <p className="page-sub">{students.error || '내 학생 정보를 확인하고 있어요.'}</p>
+      <p className="page-sub">{students.error || '학생 정보를 확인하고 있어요.'}</p>
       {students.error && <button type="button" className="btn" onClick={() => void students.reload()}>다시 받기</button>}
     </div>
   )
@@ -18,8 +18,8 @@ export function StudentGate() {
     <div className="wrap stu-gate">
       <h1 className="page-title">어느 학생의 설계를 열까요?</h1>
       <p className="page-sub">
-        {user?.academy?.name ? `${user.academy.name}의 ` : ''}학생마다 설계를 따로 저장해요. 같은 학원 선생님은 누구나 함께 보고 고칠 수 있어요.
-        {students.list && !students.list.length && !students.roster?.students.length ? ' 먼저 학생을 추가해 주세요.' : ''}
+        {user?.academy?.name ? `${user.academy.name}의 ` : ''}학생마다 설계를 따로 저장해요. 같은 학원 선생님과 함께 써요.
+        {students.list && !students.list.length && !students.roster?.students.length ? ' 학생을 추가하세요.' : ''}
       </p>
       <div className="panel-card">
         {students.roster ? <AcademyRosterPicker /> : <StudentList />}
@@ -51,8 +51,7 @@ export function DeletedStudentBar() {
     <div className="wrap stu-bar no-print">
       <div className="callout is-warn" role="status">
         <p>
-          <strong>{s.name}</strong> 학생은 명단에서 지운 학생이에요. 설계를 볼 수만 있고, 여기서 고친 내용은 저장되지 않아요. 되살리면 다시 고칠 수
-          있어요.
+          <strong>{s.name}</strong> 학생은 지운 학생이에요. 설계는 보기만 해요. 되살리면 고칠 수 있어요.
         </p>
         <div className="row-btns">
           <button type="button" className="btn btn-sm btn-primary" disabled={busy} onClick={() => void restore()}>

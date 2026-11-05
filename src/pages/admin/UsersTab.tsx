@@ -61,11 +61,7 @@ export function UsersTab() {
           <option value="disabled">정지</option>
         </select>
       </div>
-      <p className="field-hint">
-        권한은 통합 클라우드 역할을 따라요. 통합 클라우드 운영자는 대표 관리자, 원장·선생님은 일반 계정이에요 (로그인할 때 맞춤).{' '}
-        {owner ? '' : '관리자 계정 정지·삭제는 대표 관리자만 할 수 있어요. '}
-        사용자는 통합 클라우드 계정으로 처음 로그인할 때 계정이 생겨요.
-      </p>
+      <p className="field-hint">권한은 통합 클라우드 역할을 따라요. {owner ? '' : '관리자 계정 정지·삭제는 대표 관리자만 할 수 있어요. '}처음 로그인할 때 계정이 생겨요.</p>
 
       {list.error && <p className="form-error">{list.error}</p>}
       <div className={`table-wrap${list.loading ? ' is-loading' : ''}`}>

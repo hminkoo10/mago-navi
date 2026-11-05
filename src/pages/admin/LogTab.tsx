@@ -29,7 +29,7 @@ export function LogTab() {
           />
         </div>
       </div>
-      <p className="hint">관리자가 바꾼 것을 모두 남겨요. 지울 수 없어요. 사용자가 한 일은 '사용자 로그' 탭에서 봐요.</p>
+      <p className="hint">관리자 변경 기록은 지우지 않아요. 사용자 기록은 '사용자 로그'에서 봐요.</p>
       {list.error && <p className="form-error">{list.error}</p>}
       <div className={`table-wrap${list.loading ? ' is-loading' : ''}`}>
         {list.data && <LogTable items={list.data.items} />}

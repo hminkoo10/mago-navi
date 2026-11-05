@@ -71,7 +71,7 @@ export function ProfileForm({ compact = false }: { compact?: boolean }) {
               store.setProfile({ schoolType: (SCHOOL_TYPES as readonly string[]).includes(e.target.value) ? (e.target.value as SchoolType) : '' })
             }
           >
-            <option value="">{auto.schoolType ? `학교 정보대로 (${auto.schoolType})` : '모름 (골라 주세요)'}</option>
+            <option value="">{auto.schoolType ? `학교 정보대로 (${auto.schoolType})` : '모름 (고르세요)'}</option>
             {TYPE_CHOICES.map((t) => (
               <option key={t} value={t}>
                 {t === '자율고' ? '자율고 (자율형 사립고)' : t === '일반고' ? '일반고 (자율형 공립고 포함)' : t}
@@ -82,7 +82,7 @@ export function ProfileForm({ compact = false }: { compact?: boolean }) {
         <label className="fieldset">
           <span>고교 소재지</span>
           <select className="input" value={profile.region} onChange={(e) => store.setProfile({ region: e.target.value })}>
-            <option value="">{auto.region ? `학교 정보대로 (${auto.region})` : '모름 (골라 주세요)'}</option>
+            <option value="">{auto.region ? `학교 정보대로 (${auto.region})` : '모름 (고르세요)'}</option>
             {SIDO.map((s) => (
               <option key={s} value={s}>
                 {s}
@@ -105,7 +105,7 @@ export function ProfileForm({ compact = false }: { compact?: boolean }) {
           <p className="pf-hint">
             {picked.length
               ? picked.map((s) => s.label).join(', ')
-              : '농어촌 학생, 기초생활수급자·차상위·한부모 가정, 장애인, 국가보훈 대상자, 체육·예술 특기자처럼 따로 뽑는 전형이 있어요. 해당하면 골라 주세요.'}
+              : '해당하는 자격이 있으면 고르세요.'}
           </p>
         )}
         {showSpecials && (
@@ -124,8 +124,7 @@ export function ProfileForm({ compact = false }: { compact?: boolean }) {
           </ul>
         )}
         <p className="fine">
-          고른 자격은 이 기기에만 두고 계정이나 공유 링크로 보내지 않아요 (로그아웃하면 지워요). 원서 후보에 담은 전형은 계정에 저장돼요. 실제 자격은 대학이
-          서류로 확인해요.
+          고른 자격은 이 기기에만 저장해요. 실제 자격은 대학이 서류로 확인해요.
         </p>
       </section>
 

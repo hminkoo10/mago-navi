@@ -18,15 +18,15 @@ const STEPS: { key: StepKey; label: string; title: string; sub: string }[] = [
     key: 'school',
     label: '학교',
     title: '어느 학교에 다니나요?',
-    sub: '학교를 고르면 그 학교 교육과정 편제표(학년·학기별로 듣는 과목을 정한 표)를 찾아 불러와요.',
+    sub: '학교 편제표에 맞는 과목을 찾아요.',
   },
-  { key: 'major', label: '분야', title: '어떤 분야로 가고 싶나요?', sub: '여러 개 골라도 돼요. 학과 이름이나 하고 싶은 일로 찾을 수도 있어요.' },
-  { key: 'univ', label: '대학', title: '목표 대학을 골라 주세요', sub: '고른 분야의 학과가 있는 대학이 먼저 나와요. 여러 곳 골라도 돼요.' },
+  { key: 'major', label: '분야', title: '어떤 분야로 가고 싶나요?', sub: '학과 이름이나 하고 싶은 일로 찾아요.' },
+  { key: 'univ', label: '대학', title: '목표 대학을 고르세요', sub: '고른 분야의 학과가 있는 대학을 먼저 보여 줘요.' },
   {
     key: 'profile',
     label: '조건',
-    title: '내 조건을 알려 주세요',
-    sub: '같은 대학이라도 다니는 학교와 내 조건에 따라 지원할 수 있는 전형이 달라요. 잘 모르면 그냥 넘어가도 되고, 나중에 전형 찾기에서 바꿀 수 있어요.',
+    title: '내 조건을 고르세요',
+    sub: '내 조건에 맞는 전형을 찾아요. 몰라도 넘어갈 수 있어요.',
   },
 ]
 
@@ -42,9 +42,9 @@ export function StartPage() {
   // 조건(profile)은 선택 사항
   const done: Record<StepKey, boolean> = { school: !!school, major: prefs.majors.length > 0, univ: prefs.univs.length > 0, profile: true }
   const nextHint: Record<StepKey, string> = {
-    school: '학교를 먼저 골라 주세요',
-    major: '분야나 학과를 하나 이상 골라 주세요',
-    univ: '대학을 하나 이상 골라 주세요',
+    school: '학교를 먼저 고르세요',
+    major: '분야를 하나 이상 고르세요',
+    univ: '대학을 하나 이상 고르세요',
     profile: '',
   }
   // 앞 단계를 마쳐야 뒤 단계로 (주소로 바로 들어와도 마치지 않은 첫 단계를 보여 줌)

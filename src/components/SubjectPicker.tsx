@@ -61,7 +61,7 @@ export function SubjectPicker({ plan, scores, onTogglePin, onToggleExclude }: Pr
       </summary>
       <div className="picker-body">
         <p className="picker-help">
-          넣기를 누르면 그 과목이 들어갈 칸에 먼저 자리를 잡고, 남은 칸은 추천이 다시 채워요. 빼기를 누르면 추천에서 빠져요. 모두 듣는 과목은 여기 없어요.
+          넣기·빼기로 추천 과목을 바꿔요. 모두 듣는 과목은 여기 없어요.
         </p>
         <input
           type="search"

@@ -127,10 +127,10 @@ export function PlanPage() {
   }, [school, prefs.pinned, prefs.excluded, replaceChoices, notify])
 
   if (!school)
-    return <Gate title="먼저 우리 학교를 골라 주세요" body="학교 편제표가 있어야 학기별로 추천할 수 있어요." to="/start?step=school" action="학교 고르기" />
+    return <Gate title="먼저 우리 학교를 고르세요" body="학교 편제표가 있어야 추천해요." to="/start?step=school" action="학교 고르기" />
   if (!prefs.majors.length)
-    return <Gate title="가고 싶은 분야를 골라 주세요" body="분야를 고르면 그 분야 학과의 권장과목을 모아요." to="/start?step=major" action="분야 고르기" />
-  if (!prefs.univs.length) return <Gate title="목표 대학을 골라 주세요" body="대학마다 학과별 권장과목이 달라요." to="/start?step=univ" action="대학 고르기" />
+    return <Gate title="가고 싶은 분야를 고르세요" body="고른 분야의 권장과목을 모아요." to="/start?step=major" action="분야 고르기" />
+  if (!prefs.univs.length) return <Gate title="목표 대학을 고르세요" body="대학별 권장과목을 반영해요." to="/start?step=univ" action="대학 고르기" />
 
   const toggleUnit = (id: string) => {
     const next = new Set(selectedIds)
@@ -184,17 +184,17 @@ export function PlanPage() {
   const emptyReason = noUnits
     ? {
         main: '고른 대학 자료에는 이 분야 학과가 없어요.',
-        sub: '전국의 같은 분야·가까운 학과들이 많이 권하는 과목으로 빈칸을 추천했어요. 대학을 더 고르면 그 대학 권장과목도 채워요.',
+        sub: '같은 분야 학과가 많이 권하는 과목으로 빈칸을 추천했어요. 대학을 더 고르면 반영해요.',
       }
     : !realUnits.length
       ? {
           main: `${focusLabel} 기준으로는 고른 학과 ${selectedUnits.length}곳 모두 권장과목을 보지 않아요.`,
-          sub: `${prefs.focus === '정시' ? '수능 출제 과목과 ' : ''}진로와 가까운 과목으로 추천했어요. 수시도 함께 준비하면 목표 전형 칸에서 "권장과목도 함께 채우기"를 켜세요.`,
+            sub: `${prefs.focus === '정시' ? '수능 과목과 ' : ''}진로와 가까운 과목으로 추천했어요.`,
         }
       : !total
         ? {
             main: `고른 학과 ${realUnits.length}곳은 대학이 권장과목을 따로 정하지 않았어요.`,
-            sub: '계열 전체로 뽑거나 과목을 자유롭게 고르게 한 곳이에요. 같은 분야 학과들이 많이 권하는 과목으로 빈칸을 추천했어요.',
+            sub: '같은 분야 학과가 많이 권하는 과목으로 빈칸을 추천했어요.',
           }
         : null
 
@@ -292,7 +292,7 @@ export function PlanPage() {
                 </p>
                 <p className="verdict-sub">
                   {missing.length
-                    ? `우리 학교 편제표에 없는 권장과목: ${missing.slice(0, 5).join(', ')}${missing.length > 5 ? ` 외 ${missing.length - 5}개` : ''}. 공동교육과정이나 온라인학교로 들을 수 있는지 학교에 물어보세요.`
+                    ? `학교에 없는 권장과목: ${missing.slice(0, 5).join(', ')}${missing.length > 5 ? ` 외 ${missing.length - 5}개` : ''}. 공동교육과정·온라인학교를 알아보세요.`
                     : ok === total
                       ? '아래 학기별 추천대로 고르면 돼요.'
                       : '선택 칸이 모자라 다 넣지 못한 과목이 있어요. 학과별 조건에서 확인하세요.'}

@@ -18,7 +18,7 @@ export function UnivAdmissions({ univ }: { univ: string }) {
   const rated = useMemo(() => (plan ? ratePlan(plan, ctx) : []), [plan, ctx])
 
   if (data.loading) return <p className="progress-line muted">전형 자료를 불러오는 중</p>
-  if (!plan) return <p className="hint">이 대학의 2028 전형 자료는 아직 넣지 못했어요. 대학 입학처의 2028학년도 입학전형시행계획을 확인해 주세요.</p>
+  if (!plan) return <p className="hint">이 대학의 2028 전형 자료가 없어요. 대학 입학처 원문을 확인하세요.</p>
   const counts = countByStatus(rated)
   const seats = (period: string) => plan.tracks.filter((t) => t.period === period).reduce((n, t) => n + (t.seats ?? 0), 0)
 
@@ -38,14 +38,13 @@ export function UnivAdmissions({ univ }: { univ: string }) {
         {plan.ai && (
           <p className="hint">
             {plan.aiCheck
-              ? 'AI가 시행계획 원문에서 옮기고, 다른 AI가 원문과 대조해 검수한 자료예요. 사람이 확인한 것은 아니어서 지원하기 전에 원문을 꼭 확인하세요.'
-              : 'AI가 시행계획 원문에서 옮긴 자료예요. 아직 확인하지 않아 틀린 곳이 있을 수 있으니, 지원하기 전에 원문을 꼭 확인하세요.'}
+              ? '시행계획 원문을 옮기고 대조한 자료예요. 사람이 확인한 것은 아니어서 지원 전에 원문을 확인하세요.'
+              : '시행계획 원문을 자동으로 옮긴 자료예요. 틀릴 수 있으니 지원 전에 원문을 확인하세요.'}
           </p>
         )}
         {data.bundled && <p className="fine">{BUNDLED_NOTE}</p>}
         <p className="muted">
-          전형 {plan.tracks.length}개 · 수시 {seats('수시').toLocaleString('ko-KR')}명 · 정시 {seats('정시').toLocaleString('ko-KR')}명 (정원외 포함, 모집단위별
-          인원은 원문 참고)
+          전형 {plan.tracks.length}개 · 수시 {seats('수시').toLocaleString('ko-KR')}명 · 정시 {seats('정시').toLocaleString('ko-KR')}명 (모집단위별 인원은 원문 참고)
         </p>
         {plan.changes.length > 0 && (
           <details className="changes">

@@ -62,15 +62,15 @@ function RouteSummary({ focus, routes, keepAll, onKeepAll }: { focus: Focus; rou
   if (!routes.length) return null
   const names = (kind: UnitRoute['kind']) => [...new Set(routes.filter((r) => r.kind === kind).map((r) => `${short(r.unit.univ)} ${r.unit.name}`))]
   const rows: [string, string, string[]][] = [
-    ['넣음', '서류(학생부 정성평가)로 어떤 과목을 들었는지 봐요', names('record')],
-    ['넣음', '이 전형으로 뽑지 않아 학생부종합 기준으로 봤어요', names('none')],
-    ['뺌', '교과 성적(등급)만 반영해서 과목 이수는 보지 않아요', names('grades')],
+    ['넣음', '서류평가에서 과목 이수를 봐요', names('record')],
+    ['넣음', '이 전형으로 뽑지 않아 학생부종합 기준으로 봐요', names('none')],
+    ['뺌', '교과 성적만 반영해 과목 이수는 보지 않아요', names('grades')],
     ['뺌', focus === '정시' ? '수능(실기) 점수만 봐요' : focus === '논술' ? '논술 성적 위주라 과목 이수는 보지 않아요' : '전형 점수만 봐요', names('exam')],
   ]
   const dropped = routes.some((r) => !r.keep)
   return (
     <div className="focus-routes">
-      <p className="focus-routes-title">학과마다 이 전형에서 권장과목을 보는지</p>
+      <p className="focus-routes-title">이 전형에서 권장과목을 보는 학과</p>
       <ul className="focus-route-list">
         {rows
           .filter(([, , list]) => list.length)
@@ -98,7 +98,7 @@ function RecordInfo({ school, plans }: { school: School; plans: AdmissionPlan[] 
     <div className="focus-info">
       <p>
         {offered.length
-          ? `이 학교 편제표에서 석차등급 없이 성취도(A~E)만 나오는 과목: ${offered.join(', ')}. 시간표에 '등급 없음'으로 표시했어요. 교과 성적을 등급으로 계산하는 대학에서는 이 과목이 성적에 들어가는 방식이 달라요.`
+          ? `석차등급 없이 성취도(A~E)만 나오는 과목: ${offered.join(', ')}. 시간표에 '등급 없음'으로 표시했어요.`
           : '이 학교 편제표에는 등급 없이 성취도만 나오는 사회·과학 융합선택 과목이 없어요.'}
       </p>
       <details className="focus-univ-list" open={plans.length <= 3}>
@@ -129,7 +129,7 @@ function RecordInfo({ school, plans }: { school: School; plans: AdmissionPlan[] 
 function EssayInfo({ plans }: { plans: AdmissionPlan[] }) {
   return (
     <div className="focus-info">
-      <p>대학 시행계획에 적힌 논술 출제 범위의 과목을 조건에 더했어요. 학과별 조건 탭에서 대학마다 '논술 출제 범위'로 볼 수 있어요.</p>
+      <p>논술 출제 범위의 과목을 조건에 더했어요. 학과별 조건에서 확인해요.</p>
       <details className="focus-univ-list" open={plans.length <= 3}>
         <summary>대학별 논술 출제 범위 ({plans.length}곳)</summary>
         <ul className="focus-list">

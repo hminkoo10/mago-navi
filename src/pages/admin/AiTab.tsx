@@ -111,11 +111,11 @@ function ProviderForm({
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
-    if (!d.name.trim()) return setError('이름을 적어 주세요.')
-    if (!d.model.trim()) return setError('모델 이름을 적어 주세요.')
+    if (!d.name.trim()) return setError('이름을 적으세요.')
+    if (!d.model.trim()) return setError('모델 이름을 적으세요.')
     if (!editing && !d.apiKey.trim()) return setError('API 키를 넣어 주세요.')
     if (moved && !d.apiKey.trim()) return setError('주소나 종류를 바꾸면 키를 다시 넣어 주세요.')
-    if (!kind.url && !d.baseUrl.trim()) return setError('주소를 적어 주세요.')
+    if (!kind.url && !d.baseUrl.trim()) return setError('주소를 적으세요.')
     setBusy(true)
     setError('')
     try {
@@ -227,7 +227,7 @@ function ProviderForm({
       </p>
       {d.kind === 'google' && (
         <p className="field-hint">
-          키는 Google AI Studio의 API 키 메뉴에서 받아요. 무료 등급은 모델마다 분당·하루 요청 수가 정해져 있고(AI Studio에서 확인), 넘으면 그날은 AI 기능이
+          키는 Google AI Studio의 API 키 메뉴에서 받아요. 무료 등급은 모델마다 분당·하루 요청 수가 정해져 있고(AI Studio에서 확인), 넘으면 그날은 자동 기능이
           멈춰요. 무료 등급에서는 보낸 내용과 답을 Google이 제품 개선에 쓰고 검토자가 읽을 수 있어서, 이 연결을 쓰는 동안에는 개인정보 안내와 입력 칸에 그
           사실을 알려요.
         </p>
@@ -248,13 +248,13 @@ function ProviderForm({
 /** 시험 실패의 HTTP 상태로 고칠 곳 짚기. Gemini는 키가 틀려도 400 */
 function fixHint(kind: AiKind, detail = ''): string {
   const status = Number(/^HTTP (\d{3})\b/.exec(detail)?.[1])
-  if ([400, 401, 403, 404].includes(status)) return '키, 모델 이름, 주소를 확인해 주세요.'
+  if ([400, 401, 403, 404].includes(status)) return '키, 모델 이름, 주소를 확인하세요.'
   if (status === 402) return '공급자 계정에 크레딧이 없어요.'
   if (status === 429) return '요청 한도를 넘었어요. 무료 등급이면 하루 한도일 수 있어요.'
   if (status === 503 || detail === 'timeout')
     return kind === 'google'
-      ? '이 모델에 요청이 몰려 있어요(보통 잠깐이에요). 잠시 뒤 다시 하거나 고치기에서 모델을 gemini-3.6-flash로 바꿔 보세요.'
-      : '공급자 서버에 요청이 몰려 있어요. 잠시 뒤 다시 하거나 다른 모델로 바꿔 보세요.'
+      ? '이 모델에 요청이 몰려 있어요(보통 잠깐이에요). 잠시 뒤 다시 시도하거나 고치기에서 모델을 gemini-3.6-flash로 바꾸세요.'
+      : '공급자 서버에 요청이 몰려 있어요. 잠시 뒤 다시 시도하거나 다른 모델로 바꾸세요.'
   return ''
 }
 
@@ -313,9 +313,9 @@ export function AiTab() {
   return (
     <div className="admin-ai">
       <section className="panel-card">
-        <h2 className="card-title">지금 쓰는 AI</h2>
+        <h2 className="card-title">지금 쓰는 연결</h2>
         {s.broken ? (
-          <p className="callout is-warn">고른 연결의 키를 풀 수 없어 AI가 꺼져 있어요. 그 연결의 키를 다시 넣거나 다른 연결을 골라 주세요.</p>
+          <p className="callout is-warn">고른 연결의 키를 풀 수 없어 자동 기능이 꺼져 있어요. 그 연결의 키를 다시 넣거나 다른 연결을 고르세요.</p>
         ) : s.using ? (
           <p className="ai-using">
             <strong>{s.using.name}</strong>
@@ -325,11 +325,11 @@ export function AiTab() {
             </span>
           </p>
         ) : (
-          <p className="callout is-warn">쓸 수 있는 AI 연결이 없어요. 아래에서 연결을 추가하고 '이걸로 쓰기'를 눌러 주세요.</p>
+          <p className="callout is-warn">쓸 수 있는 연결이 없어요. 아래에서 연결을 추가하고 '이걸로 쓰기'를 누르세요.</p>
         )}
         {features.userKey ? (
           <p className="callout">
-            설정의 '사용자 키로 AI 쓰기'가 켜져 있어요. 편제표 자동 읽기, 올린 파일 읽기, 문장으로 분야 찾기는 각 사용자가 등록한 Gemini API 키로 하고, 여기서
+            설정의 '사용자 키 쓰기'가 켜져 있어요. 편제표 자동 읽기, 올린 파일 읽기, 문장으로 분야 찾기는 각 사용자가 등록한 Gemini API 키로 하고, 여기서
             고른 연결은 대입 자료 자동 갱신과 연결 시험에만 쓰여요.
           </p>
         ) : (
@@ -354,7 +354,7 @@ export function AiTab() {
             onDone={(next) => {
               setState(next)
               setForm(null)
-              notify(editing ? '연결을 고쳤어요.' : '연결을 추가했어요. 시험해 본 뒤 이걸로 쓰기를 눌러 주세요.')
+              notify(editing ? '연결을 고쳤어요.' : '연결을 추가했어요. 시험해 본 뒤 이걸로 쓰기를 누르세요.')
             }}
           />
         </section>
@@ -367,7 +367,7 @@ export function AiTab() {
               <strong>환경변수 설정 (.env)</strong>
               {s.active === null && s.env && <span className="badge is-ok">쓰는 중</span>}
             </div>
-            <p className="muted">{s.env ? `OpenAI 호환 · ${s.env.host} · ${s.env.model}` : '서버 환경변수에 AI 설정이 없어요.'}</p>
+            <p className="muted">{s.env ? `OpenAI 호환 · ${s.env.host} · ${s.env.model}` : '서버 환경변수에 자동 처리 설정이 없어요.'}</p>
             <TestLine result={tests.env} kind="openai" />
           </div>
           <div className="row-btns">

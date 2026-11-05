@@ -22,9 +22,9 @@ const PROVIDER_TEXT: Record<string, string> = { gemini: 'Gemini', openai: 'OpenA
 const ACADEMY_AI_TEXT: Record<Exclude<AcademyAiState, 'ready'>, string> = {
   none: '학원에 아직 학원 AI가 없어요. 원장님이 통합 클라우드의 학원 AI에서 정할 수 있어요.',
   lan: '학원 AI가 학원 안 주소에 있어 웹에서는 부를 수 없어요.',
-  model: '학원 AI에 모델 이름이 없어 부를 수 없어요. 원장님께 통합 클라우드의 학원 AI에서 모델을 정해 달라고 해 주세요.',
+  model: '학원 AI에 모델 이름이 없어 부를 수 없어요. 원장님께 통합 클라우드의 학원 AI에서 모델을 정해 달라고 하세요.',
   'no-academy': '학원에 속한 계정이 아니라 학원 AI가 없어요.',
-  offline: '통합 클라우드에 연결하지 못해 학원 AI를 확인하지 못했어요. 잠시 후 다시 열어 주세요.',
+  offline: '통합 클라우드에 연결하지 못해 학원 AI를 확인하지 못했어요. 잠시 후 다시 여세요.',
 }
 
 /** 등록한 키가 바뀌면 AI 상태도 바뀌어 내 정보를 다시 받는다 (못 받으면 그대로) */
@@ -54,8 +54,8 @@ function AiChoiceCard() {
       : user.aiKey?.ok
         ? '학원 AI를 못 쓰는 동안에는 등록한 내 키로 해요.'
         : ai.fallback
-          ? '학원 AI를 못 쓰는 동안에는 운영자 서버 AI로 해요.'
-          : '그동안 AI 기능을 쓰려면 아래에 내 키를 등록해 주세요.'
+          ? '학원 AI를 못 쓰는 동안에는 운영자 서버 연결로 해요.'
+          : '그동안 자동 기능을 쓰려면 아래에 내 키를 등록하세요.'
 
   const choose = async (source: AiSource) => {
     if (source === ai.source) return
@@ -63,7 +63,7 @@ function AiChoiceCard() {
     try {
       const r = await myAi.set(source)
       setUser({ ...user, ai: r.ai })
-      notify(source === 'own' ? '이제 AI 기능을 내 Gemini API 키로 해요.' : '이제 AI 기능을 학원 AI로 해요.')
+      notify(source === 'own' ? '이제 자동 기능을 내 Gemini API 키로 해요.' : '이제 자동 기능을 학원 AI로 해요.')
     } catch (err) {
       notify(err instanceof ApiError ? err.message : '바꾸지 못했어요.')
     } finally {
@@ -73,12 +73,12 @@ function AiChoiceCard() {
 
   return (
     <section className="panel-card" id="ai">
-      <h2 className="card-title">AI 기능에 쓸 AI</h2>
-      <p className="card-sub">편제표 자동 읽기·파일 읽기·문장으로 찾기를 무엇으로 할지 골라요.</p>
-      <div className="segmented segmented-2" role="radiogroup" aria-label="AI 기능에 쓸 AI">
+      <h2 className="card-title">자동 기능에 쓸 연결</h2>
+      <p className="card-sub">편제표·파일 읽기와 문장 검색에 쓸 연결을 골라요.</p>
+      <div className="segmented segmented-2" role="radiogroup" aria-label="자동 기능에 쓸 연결">
         {(
           [
-            ['academy', '학원 AI', '원장님이 정한 AI (기본)'],
+            ['academy', '학원 AI', '원장님이 정한 연결 (기본)'],
             ['own', '내 키', '내 Gemini API 키'],
           ] as const
         ).map(([value, label, sub]) => (
@@ -97,7 +97,7 @@ function AiChoiceCard() {
         ))}
       </div>
       {ai.source === 'own' ? (
-        !user.aiKey?.ok && <p className="callout is-warn">아직 쓸 수 있는 내 키가 없어요. 아래에 키를 등록해 주세요.</p>
+        !user.aiKey?.ok && <p className="callout is-warn">아직 쓸 수 있는 내 키가 없어요. 아래에 키를 등록하세요.</p>
       ) : (
         <p className={academy.state === 'ready' ? 'fine' : 'callout is-warn'}>
           {academyText}
@@ -125,7 +125,7 @@ function AiKeyCard() {
   const save = async (e: FormEvent) => {
     e.preventDefault()
     const apiKey = value.trim()
-    if (apiKey.length < 20) return setError('Google AI Studio에서 복사한 키를 붙여 넣어 주세요.')
+    if (apiKey.length < 20) return setError('Google AI Studio에서 복사한 키를 붙여 넣으세요.')
     setBusy(true)
     setError('')
     try {
@@ -133,7 +133,7 @@ function AiKeyCard() {
       setUser({ ...user, aiKey: r.aiKey })
       setValue('')
       setEditing(false)
-      notify(r.note ? `키를 등록했어요. ${r.note}` : mago ? '키를 등록했어요.' : '키를 등록했어요. 이제 AI 기능을 내 키로 써요.')
+      notify(r.note ? `키를 등록했어요. ${r.note}` : mago ? '키를 등록했어요.' : '키를 등록했어요. 이제 자동 기능을 내 키로 써요.')
       if (mago) void refreshMe(setUser)
     } catch (err) {
       setError(err instanceof ApiError ? err.message : '키를 등록하지 못했어요.')
@@ -162,10 +162,10 @@ function AiKeyCard() {
       <h2 className="card-title">내 Gemini API 키</h2>
       <p className="card-sub">
         {mago
-          ? "'내 키'를 고르거나 학원 AI를 쓸 수 없을 때 편제표 자동 읽기·파일 읽기·문장으로 찾기를 이 키로 해요."
+          ? "'내 키'를 고르거나 학원 AI를 쓸 수 없을 때 이 키로 읽어요."
           : features.userKey
-            ? '편제표 자동 읽기·파일 읽기·문장으로 찾기를 이 키로 해요. 키가 없으면 이 기능들을 쓸 수 없어요.'
-            : '지금은 관리자가 서버 AI를 쓰게 해 두어서 이 키를 쓰지 않아요.'}
+            ? '편제표·파일 읽기와 문장 검색에 이 키를 써요.'
+            : '지금은 서버 연결을 써서 이 키가 필요하지 않아요.'}
       </p>
       {key && !editing ? (
         <>
@@ -179,7 +179,7 @@ function AiKeyCard() {
               <dd>{dateTime(key.addedAt)}</dd>
             </div>
           </dl>
-          {!key.ok && <p className="callout is-warn">서버 설정이 바뀌어 이 키를 쓸 수 없어요. 키를 다시 등록해 주세요.</p>}
+          {!key.ok && <p className="callout is-warn">서버 설정이 바뀌어 이 키를 쓸 수 없어요. 키를 다시 등록하세요.</p>}
           <div className="row-btns">
             <button type="button" className="btn" disabled={busy} onClick={() => setEditing(true)}>
               다른 키로 바꾸기
@@ -227,7 +227,7 @@ function AiKeyCard() {
         </form>
       )}
       <p className="fine" id="ai-key-help">
-        키는 암호화해서 저장하고, AI 기능을 쓸 때만 Google로 보내요. 등록할 때 짧은 질문 하나로 맞는 키인지 확인해요. 키는 다른 사람에게 보내거나 채팅에 올리지
+        키는 암호화해서 저장하고, 자동 기능을 쓸 때만 Google로 보내요. 등록할 때 짧은 질문 하나로 맞는 키인지 확인해요. 키는 다른 사람에게 보내거나 채팅에 올리지
         마세요. <Link to="/help/gemini-key">발급 방법 보기</Link>
       </p>
     </section>
@@ -278,7 +278,7 @@ export function AccountPage() {
           <h2 className="card-title">{students.active ? (student ? `${student.name} 학생 설계` : '학생 설계') : '저장한 설계'}</h2>
           <p className="card-sub">
             {noStudent
-              ? user.magoRole === 'student' ? '내 학생 정보를 확인하고 있어요.' : '학생마다 설계를 따로 저장해요. 머리글의 학생에서 학생을 고르면 그 학생 설계를 보여 줘요.'
+              ? user.magoRole === 'student' ? '내 학생 정보를 확인하고 있어요.' : '학생마다 설계를 따로 저장해요. 머리글에서 학생을 고르면 보여 줘요.'
               : store.sync === 'saved' && store.savedAt
                 ? `${syncText} · ${dateTime(store.savedAt)}`
                 : store.sync === 'rejected' && store.syncMessage
@@ -300,7 +300,7 @@ export function AccountPage() {
                 <dd>{store.schools.length}곳</dd>
               </div>
               <div>
-                <dt>슬롯</dt>
+                <dt>설계안</dt>
                 <dd>{store.slots.length}개</dd>
               </div>
               <div>
@@ -334,8 +334,8 @@ export function AccountPage() {
 
         {user.magoRole === 'student' && (
           <section className="panel-card">
-            <h2 className="card-title">AI 기능</h2>
-            <p className="card-sub">{user.aiMode === 'teacher' ? '담당 선생님의 AI 키로 이용해요.' : '학원 AI로 이용해요.'} AI 설정은 선생님이 정해요.</p>
+            <h2 className="card-title">자동 기능</h2>
+            <p className="card-sub">{user.aiMode === 'teacher' ? '담당 선생님의 키로 이용해요.' : '학원 AI로 이용해요.'} 설정은 선생님이 정해요.</p>
             {user.ai?.message && <p className="callout is-warn">{user.ai.message}</p>}
           </section>
         )}
@@ -343,8 +343,7 @@ export function AccountPage() {
         <section className="panel-card">
           <h2 className="card-title">로그아웃</h2>
           <p className="card-sub">
-            로그아웃하면 이 기기에 남은 설계를 지워요. 계정에는 그대로 남아 있어요. 브라우저를 닫아도 로그아웃되지 않으니, 같이 쓰는 컴퓨터에서는 꼭
-            로그아웃하세요.
+            로그아웃하면 이 기기의 설계를 지워요. 계정에는 남아 있어요. 같이 쓰는 컴퓨터에서는 꼭 로그아웃하세요.
           </p>
           <div>
             <button type="button" className="btn" onClick={() => void signOut()}>

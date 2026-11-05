@@ -37,7 +37,7 @@ export function PicksPanel({ variant = 'inline' }: { variant?: 'aside' | 'inline
       <section className={`${cls} is-empty`}>
         <h2 className="card-title">내 원서 후보</h2>
         <p className="muted">
-          전형 오른쪽의 <strong>담기</strong>를 누르면 여기에 모여요. 수시 {SUSI_LIMIT}장, 정시 {JEONGSI_LIMIT}장을 미리 짜 보세요.
+          전형 오른쪽의 <strong>담기</strong>를 누르면 모여요. 수시 {SUSI_LIMIT}장·정시 {JEONGSI_LIMIT}장까지예요.
         </p>
       </section>
     )
@@ -171,8 +171,7 @@ export function PicksPanel({ variant = 'inline' }: { variant?: 'aside' | 'inline
       )}
 
       <p className="fine">
-        수시에 합격하면 등록하지 않아도 그해 정시·추가모집에 지원할 수 없어요. 과학기술원·사관학교·경찰대학 같은 특별법 대학과 산업대·전문대는 지원 횟수에
-        들어가지 않아요.
+        수시 합격자는 등록하지 않아도 그해 정시·추가모집에 지원할 수 없어요. 특별법 대학·산업대·전문대는 횟수에서 빠져요.
       </p>
       {manualCopy !== null && <CopyDialog text={manualCopy} onClose={() => setManualCopy(null)} />}
     </section>

@@ -624,11 +624,12 @@ function clearScoped(): void {
   }
 }
 
-const quoteList = (names: string[]) => names.map((n) => `'${n}'`).join(', ')
+const screenSlotName = (name: string) => name.replace(/^슬롯(?=\s|$)/, '설계안')
+const quoteList = (names: string[]) => names.map((n) => `'${screenSlotName(n)}'`).join(', ')
 
 /** 슬롯·편제표가 넘쳐 뺀 것 알림 */
 const droppedText = (names: string[]) =>
-  `자리가 모자라 ${quoteList(names)}${josa(names[names.length - 1], '을', '를')} 뺐어요. 슬롯은 ${MAX_SLOTS}개, 편제표는 ${MAX_SCHOOLS}개까지예요.`
+  `자리가 모자라 ${quoteList(names)}${josa(screenSlotName(names[names.length - 1]), '을', '를')} 뺐어요. 설계안은 ${MAX_SLOTS}개, 편제표는 ${MAX_SCHOOLS}개까지예요.`
 
 // ---- 공유 링크 ----
 
@@ -1096,12 +1097,12 @@ export function useAppState(options: StoreOptions = {}) {
         setSchools(placed.schools)
         setSlots((cur) => [...synced(cur, p), slot])
         setPrefsRaw({ ...p, ...design, slot: slot.id, at: slot.at })
-        notice('공유받은 설계를 새 슬롯에 열었어요.')
+        notice('공유받은 설계를 새 설계안에 열었어요.')
       } else {
         // 가득 찼으면 지금 슬롯을 덮어쓸지 묻는다 (되돌리기 가능)
-        const name = list.find((s) => s.id === p.slot)?.name ?? '지금 슬롯'
-        if (!confirm(`슬롯이 ${MAX_SLOTS}개라 새 슬롯을 만들 수 없어요. ${name}${josa(name, '을', '를')} 공유받은 설계로 바꿀까요?`)) {
-          notice('공유받은 설계를 열지 않았어요. 슬롯을 하나 지우고 링크를 다시 열어 주세요.')
+        const name = screenSlotName(list.find((s) => s.id === p.slot)?.name ?? '지금 설계안')
+        if (!confirm(`설계안이 ${MAX_SLOTS}개라 새 설계안을 만들 수 없어요. ${name}${josa(name, '을', '를')} 공유받은 설계로 바꿀까요?`)) {
+          notice('공유받은 설계를 열지 않았어요. 설계안을 하나 지우고 링크를 다시 열어 주세요.')
           return
         }
         const before = { slot: p.slot, design: designOf(p) }

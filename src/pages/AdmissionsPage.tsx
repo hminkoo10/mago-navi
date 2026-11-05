@@ -71,13 +71,12 @@ export function AdmissionsPage() {
         <p className="eyebrow">2028 대입</p>
         <h1 className="page-title">전형 찾기</h1>
         <p className="page-sub">
-          대학마다 다니는 학교와 내 조건에 따라 지원할 수 있는 전형이 달라요. 대학이 2026년 4월 발표한 「2028학년도 대학입학전형시행계획」으로 판단해요.
+          다니는 학교와 내 조건에 맞는 2028 전형을 찾아요. 대학 시행계획을 기준으로 판단해요.
         </p>
         {data.updatedAt && <p className="fine">자료 최근 업데이트 {dateTime(data.updatedAt)}</p>}
         {school && admissionYearOf(school.cohort) > 2028 && (
           <p className="callout is-warn">
-            {school.cohort}년 입학생은 {admissionYearOf(school.cohort)}학년도 입시를 봐요. 대학별 {admissionYearOf(school.cohort)}학년도 시행계획은{' '}
-            {admissionYearOf(school.cohort) - 2}년 4월 말에 나와서, 그때까지는 2028학년도 전형으로 미리 봐요. 전형 이름·인원·수능 최저는 해마다 바뀔 수 있어요.
+            {school.cohort}년 입학생은 {admissionYearOf(school.cohort)}학년도 입시예요. 그전까지 2028 전형으로 미리 봐요. 전형·인원·수능 최저는 바뀔 수 있어요.
           </p>
         )}
       </header>
@@ -155,7 +154,7 @@ export function AdmissionsPage() {
           {data.bundled && <p className="fine">{BUNDLED_NOTE}</p>}
           {!data.loading && (
             <p className="hint">
-              {groups.length ? `대학 ${groups.length}곳, 전형 ${total}개` : '조건에 맞는 전형이 없어요. 거르기를 줄이거나 내 조건을 확인해 주세요.'}
+              {groups.length ? `대학 ${groups.length}곳 · 전형 ${total}개` : '조건에 맞는 전형이 없어요. 거르기나 내 조건을 확인하세요.'}
             </p>
           )}
 
@@ -181,12 +180,12 @@ export function AdmissionsPage() {
 
           {!data.loading && missing.length > 0 && (
             <p className="fine adm-missing">
-              담은 대학 중 아직 전형 자료를 넣지 못한 대학: {missing.map((u) => u.short).join(', ')}. 대학 입학처의 2028학년도 입학전형시행계획을 확인해 주세요.
+              담은 대학 중 전형 자료가 없는 곳: {missing.map((u) => u.short).join(', ')}. 대학 입학처 원문을 확인하세요.
             </p>
           )}
           {!data.loading && !(scope === 'mine' && prefs.univs.length) && withPlans < UNIVERSITIES.length && (
             <p className="fine adm-missing">
-              전형 자료는 대학 {withPlans}곳에 있어요. 나머지 {UNIVERSITIES.length - withPlans}곳은 대학 입학처의 2028학년도 입학전형시행계획을 확인해 주세요.
+              전형 자료는 대학 {withPlans}곳에 있어요. 나머지는 대학 입학처 원문을 확인하세요.
             </p>
           )}
         </div>

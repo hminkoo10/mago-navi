@@ -46,7 +46,7 @@ export function StagesTable({ stages, method }: { stages: Stage[]; method?: stri
       </table>
       {differs && (
         <p className="stages-note">
-          표는 대학이 밝힌 실질 반영 비율(기본점수를 빼고 실제로 점수 차이를 만드는 비율)이나 세부 배점을 따라서, 위 전형 방법에 적힌 비율과 다를 수 있어요.
+          실질 반영 비율이나 세부 배점 때문에 전형 방법의 비율과 다를 수 있어요.
         </p>
       )}
     </>
@@ -86,7 +86,7 @@ export function SuneungTable({ rules, open = false, mine }: { rules: SuneungRule
                   {!values.length ? (
                     // 성적 좋은 영역을 골라 반영: 정해진 비율 없음 (산출식 참고)
                     <td colSpan={Math.max(1, areas.length)} className="pick-best">
-                      정해진 비율 없이 성적이 좋은 영역을 골라 반영해요. 아래 산출식을 보세요.
+                      정해진 비율 없이 성적이 좋은 영역을 골라 반영해요. 아래 산출식을 확인하세요.
                     </td>
                   ) : (
                     areas.map((a) => (
@@ -98,7 +98,7 @@ export function SuneungTable({ rules, open = false, mine }: { rules: SuneungRule
                   <td className="use-col">
                     {r.use}
                     {values.reduce((a, b) => a + b, 0) > 101 && (
-                      <small className="best-of">비율 합이 100%를 넘어요. 영역 가운데 성적이 좋은 것만 골라 반영해요.</small>
+                       <small className="best-of">합이 100%를 넘어 성적이 좋은 영역을 골라 반영해요.</small>
                     )}
                   </td>
                 </tr>
@@ -192,7 +192,7 @@ export function PlanRules({ plan }: { plan: AdmissionPlan }) {
       {plan.suneung && plan.suneung.length > 0 && (
         <div>
           <h3 className="rules-title">정시 수능 반영 비율</h3>
-          <p className="muted small">진하게 표시한 영역이 그 묶음에서 가장 많이 반영돼요.</p>
+          <p className="muted small">진한 영역을 가장 많이 반영해요.</p>
           <SuneungTable rules={plan.suneung} />
         </div>
       )}

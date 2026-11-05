@@ -117,7 +117,7 @@ export function SourcesView({ univIds, school }: Props) {
             {school.shared
               ? school.shared.verified
                 ? `원문과 맞춰 본 편제표 · ${school.shared.at.slice(0, 10)}`
-                : `자동으로 읽음 ${school.shared.at.slice(0, 10)} · 생성형 AI가 옮긴 표라 틀릴 수 있어요`
+                : `자동으로 읽음 ${school.shared.at.slice(0, 10)} · 자동으로 옮긴 표라 틀릴 수 있어요`
               : `확인 ${school.checked}`}
           </p>
           {school.shared && <Report id={school.shared.id} />}

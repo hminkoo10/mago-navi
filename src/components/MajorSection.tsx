@@ -101,8 +101,8 @@ export function MajorSection({ selected, onChange, aiEnabled }: Props) {
       {features.match && needKey && !trimmed && <KeyNeeded what="문장으로 찾기" other="학과 이름 같은 키워드로는 지금도 찾을 수 있어요." />}
       {aiEnabled && !trimmed && (
         <p className="hint">
-          하고 싶은 일을 문장으로 적고 Enter를 누르면 AI가 맞는 세부 학과를 골라 줘요.
-          {training && ' 적은 문장은 Google Gemini(무료 등급)로 보내져 Google이 개선에 쓸 수 있으니 이름 같은 개인정보는 적지 마세요.'}
+          하고 싶은 일을 문장으로 적고 Enter를 누르면 맞는 세부 학과를 찾아 줘요.
+          {training && ' 문장은 Google로 보내질 수 있으니 개인정보는 적지 마세요.'}
         </p>
       )}
 
@@ -129,12 +129,12 @@ export function MajorSection({ selected, onChange, aiEnabled }: Props) {
               })}
             </ul>
           ) : (
-            <p className="hint">{canAsk ? '맞는 키워드가 없어요.' : '맞는 학과가 없어요. 아래 목록에서 골라 주세요.'}</p>
+            <p className="hint">{canAsk ? '맞는 키워드가 없어요.' : '맞는 학과가 없어요. 아래 목록에서 고르세요.'}</p>
           )}
           {lookup.state === 'error' && <p className="hint is-warn">{lookup.message}</p>}
           {canAsk && !(lookup.state === 'done' && lookup.text === trimmed) && lookup.state !== 'loading' && (
             <button type="button" className="btn-link" onClick={() => void ask()}>
-              문장 뜻으로 찾기 (AI)
+              문장 뜻으로 찾기
             </button>
           )}
         </div>
@@ -163,7 +163,7 @@ export function MajorSection({ selected, onChange, aiEnabled }: Props) {
                           className={`chip chip-sm${own ? ' is-on' : all ? ' is-implied' : ''}`}
                           aria-pressed={own || all}
                           onClick={() => toggle(fm.id)}
-                          title={n ? undefined : '대학 자료에 이 이름의 모집단위가 없어 가까운 학과 자료로 추천해요'}
+                          title={n ? undefined : '같은 이름의 대학 자료가 없어 가까운 학과 자료를 써요'}
                         >
                           {fm.name}
                           {n ? <small className="num">{n}</small> : <small className="chip-near">비슷한 학과로</small>}
@@ -178,8 +178,7 @@ export function MajorSection({ selected, onChange, aiEnabled }: Props) {
         ))}
       </div>
       <p className="fine">
-        칩 옆 숫자는 그 학과 이름으로 뽑는 모집단위 수예요. 공과대학·자연계열 전체처럼 넓게 뽑는 모집단위는 어느 세부 학과를 골라도 함께 나와요. '비슷한
-        학과로'는 대학 자료에 같은 이름의 모집단위가 없어, 가까운 학과(예: 컴퓨터교육 → 컴퓨터공학)가 권하는 과목으로 추천한다는 뜻이에요.
+        숫자는 해당 이름으로 뽑는 모집단위 수예요. '비슷한 학과로'는 가까운 학과 자료를 쓴다는 뜻이에요.
       </p>
     </section>
   )

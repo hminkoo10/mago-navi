@@ -61,7 +61,7 @@ export function TrackList({ rated, plan }: { rated: RatedTrack[]; plan: Admissio
                       </span>
                     ))}
                     {my.open && (
-                      <span className="my-units-note">인원 미정: 뽑기는 하지만 학과별 인원이 따로 없어요 (약간명, 수시에서 남은 인원, 계열 단위 모집 등).</span>
+                    <span className="my-units-note">인원 미정: 학과별 인원이 따로 없어요.</span>
                     )}
                   </p>
                 )}
@@ -138,7 +138,7 @@ export function TrackList({ rated, plan }: { rated: RatedTrack[]; plan: Admissio
                     plan.planTitle
                   )}{' '}
                   {/^[\d\s,~-]+$/.test(t.pages) ? `${t.pages}쪽` : t.pages}
-                  {plan.ai && (plan.aiCheck ? ' · AI가 옮기고 AI가 검수함 (원문을 꼭 확인하세요)' : ' · AI가 옮김 (확인 전, 원문을 꼭 확인하세요)')}
+                  {plan.ai && (plan.aiCheck ? ' · 자동으로 옮기고 대조함 (원문을 꼭 확인하세요)' : ' · 자동으로 옮김 (확인 전, 원문을 꼭 확인하세요)')}
                 </p>
               </div>
             </details>
@@ -165,13 +165,13 @@ export function StatusLegend() {
   return (
     <p className="adm-legend">
       <span>
-        <b className="adm-badge is-ok">지원 가능</b> 대학이 적은 자격이 내 조건과 맞아요
+        <b className="adm-badge is-ok">지원 가능</b> 대학 자격과 내 조건이 맞아요
       </span>
       <span>
-        <b className="adm-badge is-check">확인 필요</b> 학교장 추천이나 자격 서류처럼 따로 확인할 게 있어요
+        <b className="adm-badge is-check">확인 필요</b> 추천·자격 서류를 확인하세요
       </span>
       <span>
-        <b className="adm-badge is-no">지원 불가</b> 학교 유형·지역·자격이 맞지 않아요
+        <b className="adm-badge is-no">지원 불가</b> 학교·지역·자격이 맞지 않아요
       </span>
     </p>
   )

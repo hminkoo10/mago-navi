@@ -84,7 +84,7 @@ describe('전형 지원 자격', () => {
     expect(eligibility(social, general).status).toBe('check')
     const art = eligibility(track({ type: '실기', special: ['artist'] }), general)
     expect(art.status).toBe('no')
-    expect(art.reasons[0]).toContain('내 조건에서 골라 주세요')
+    expect(art.reasons[0]).toContain('내 조건에서 고르세요')
     const artist = contextOf({ ...EMPTY_PROFILE, special: ['artist'] }, { kind: '예술고', region: '서울' })
     expect(eligibility(track({ type: '실기', special: ['artist'] }), artist).status).toBe('check')
   })

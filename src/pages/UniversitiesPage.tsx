@@ -40,8 +40,7 @@ export function UniversitiesPage() {
         <p className="eyebrow">2028학년도</p>
         <h1 className="page-title">대학 권장과목</h1>
         <p className="page-sub">
-          대학 {withUnits}곳의 학과별 핵심·권장과목이에요. 대교협 자료집과 대학 입학처 자료를 옮겼고, 원문 칸도 함께 보여 줘요. 권장과목 자료가 없는 대학{' '}
-          {UNIVERSITIES.length - withUnits}곳도 무엇을 확인했는지 볼 수 있어요.
+          대학 {withUnits}곳의 학과별 핵심·권장과목이에요. 자료가 없는 대학 {UNIVERSITIES.length - withUnits}곳도 확인한 문서를 보여 줘요.
         </p>
       </header>
 
@@ -130,7 +129,7 @@ export function UniversitiesPage() {
         <section className="section-tight">
           <details className="silent-univs">
             <summary>권장과목 자료가 없는 대학 {silent.length}곳</summary>
-            <p className="hint">2028학년도 학과별 권장과목을 밝히지 않았거나 공식 자료를 찾지 못한 대학이에요. 대학마다 확인한 문서와 안내를 볼 수 있어요.</p>
+            <p className="hint">권장과목이 없거나 공식 자료를 찾지 못한 대학이에요. 확인한 문서를 보여 줘요.</p>
             <ul className="univ-grid">
               {silent.map((u) => {
                 const on = store.prefs.univs.includes(u.id)

@@ -243,7 +243,7 @@ function Workspace({ user, setUser, authReady, features, down, retry, notify, st
     const lost = () => {
       setUser(null)
       sessionLost()
-      notify('로그인이 끝났어요. 다시 로그인해 주세요.')
+      notify('로그인이 끝났어요. 다시 로그인하세요.')
     }
     window.addEventListener(AUTH_LOST, lost)
     return () => window.removeEventListener(AUTH_LOST, lost)
@@ -263,7 +263,7 @@ function Workspace({ user, setUser, authReady, features, down, retry, notify, st
     } catch (e) {
       // 401이면 이미 로그아웃된 것. 서버가 세션을 끝냈는지 모르면 로그아웃했다고 하지 않는다
       if (!(e instanceof ApiError && e.status === 401)) {
-        notify('로그아웃하지 못했어요. 인터넷 연결을 확인하고 다시 해 주세요.')
+        notify('로그아웃하지 못했어요. 인터넷 연결을 확인하고 다시 시도하세요.')
         return
       }
     }
@@ -290,7 +290,7 @@ function Workspace({ user, setUser, authReady, features, down, retry, notify, st
           {down && !NO_SERVER_PAGES.has(r.page) ? (
             <div className="wrap gate" role="alert">
               <h1 className="page-title">서버에 연결하지 못했어요</h1>
-              <p className="page-sub">인터넷 연결을 확인하고 다시 시도해 주세요.</p>
+              <p className="page-sub">인터넷 연결을 확인하고 다시 시도하세요.</p>
               <button type="button" className="btn btn-primary btn-lg" onClick={retry}>
                 다시 시도
               </button>

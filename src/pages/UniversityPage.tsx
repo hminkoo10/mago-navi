@@ -115,8 +115,7 @@ export function UniversityPage({ id }: { id: string }) {
           </div>
           {school && fit.size > 0 && (
             <p className="hint">
-              {shortSchool(school.name)} {school.cohort}학년도 입학 편제표로 보면, 과목 조건이 있는 학과 {fit.size}곳 중 {fitCount}곳의 권장과목을 다 들을 수
-              있어요.
+              {shortSchool(school.name)} 편제표로 {fit.size}곳 중 {fitCount}곳의 권장과목을 다 들을 수 있어요.
             </p>
           )}
           {fields.length > 1 && (
@@ -179,7 +178,7 @@ export function UniversityPage({ id }: { id: string }) {
                     <p className="muted">따로 정한 과목이 없어요.</p>
                   )}
                   {u.note && <p className="cond-note">{u.note}</p>}
-                  {(u.check || u.legacy) && <p className="cond-flag">원문 해석이 애매한 칸이 있어요. 대학 입학처 안내를 함께 확인하세요.</p>}
+              {(u.check || u.legacy) && <p className="cond-flag">원문 해석이 애매해요. 대학 입학처 안내를 확인하세요.</p>}
                 </div>
               </li>
             ))}

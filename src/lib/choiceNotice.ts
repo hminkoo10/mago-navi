@@ -17,7 +17,7 @@ export function choiceNotice(subject: string, r: ChoiceChange): string | null {
     const { reason, where } = r.refused
     if (reason === 'every-set') return `${subject}: ${where}의 모든 세트에 들어 있는 과목이라 뺄 수 없어요.`
     if (reason === 'whole-group') return `${subject}: ${where}에서 꼭 들어야 하는 과목이라 뺄 수 없어요.`
-    return `${subject}: 들어갈 칸이 없어 꼭 듣기로 할 수 없어요. 학교 편제표를 확인해 주세요.`
+    return `${subject}: 들어갈 칸이 없어 꼭 듣기로 할 수 없어요. 학교 편제표를 확인하세요.`
   }
   const set = r.set ? `같은 세트(${r.set})` : '같은 세트'
   const parts = [

@@ -7,7 +7,7 @@ import { Dialog } from './Dialog'
 export function ResetDialog({ onClose }: { onClose: () => void }) {
   const { store, notify } = useApp()
   const { prefs, slots } = store
-  const name = slots.find((s) => s.id === prefs.slot)?.name ?? '지금 슬롯'
+  const name = (slots.find((s) => s.id === prefs.slot)?.name ?? '지금 설계안').replace(/^슬롯(?=\s|$)/, '설계안')
   const subjects = prefs.pinned.length + prefs.excluded.length
   const [what, setWhat] = useState<'subjects' | 'all'>(subjects ? 'subjects' : 'all')
   const mode = subjects ? what : 'all'
@@ -46,7 +46,7 @@ export function ResetDialog({ onClose }: { onClose: () => void }) {
             <strong>꼭 듣기·빼기만 지우기</strong>
             <small>
               {subjects
-                ? `직접 고른 꼭 듣기 ${prefs.pinned.length}개, 빼기 ${prefs.excluded.length}개를 지우고 추천대로 되돌려요. 분야·대학은 그대로예요.`
+                ? `꼭 듣기 ${prefs.pinned.length}개·빼기 ${prefs.excluded.length}개를 지우고 추천대로 되돌려요. 분야·대학은 그대로예요.`
                 : '직접 고른 꼭 듣기·빼기가 없어요.'}
             </small>
           </span>
@@ -55,7 +55,7 @@ export function ResetDialog({ onClose }: { onClose: () => void }) {
           <input type="radio" name="reset-what" checked={mode === 'all'} onChange={() => setWhat('all')} />
           <span>
             <strong>{name} 전체 초기화</strong>
-            <small>분야·대학·학과·꼭 듣기/빼기·목표 전형을 모두 비워요. 학교 편제표, 내 조건, 원서 후보, 다른 슬롯은 그대로예요.</small>
+            <small>분야·대학·학과·꼭 듣기/빼기·목표 전형을 비워요. 학교 편제표·내 조건·원서 후보·다른 설계안은 그대로예요.</small>
           </span>
         </label>
       </fieldset>

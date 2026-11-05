@@ -69,8 +69,7 @@ export function Timetable({ plan, reasons, suggestions, setHints, onPickSet, mar
         </span>
       </div>
       <p className="tt-help">
-        과목을 누르면 왜 골랐는지 보고, 꼭 듣거나 빼도록 바꿀 수 있어요. 고를 칸은 목표 학과 권장과목으로 채우고 남은 자리예요. 칸의 '추천'은 전국의 같은 분야
-        학과들이 많이 권하는 과목이고, 칸을 누르면 직접 고를 수 있어요.
+        과목을 누르면 설명과 바꾸기가 나와요. 빈칸의 추천은 목표 학과 권장과목을 기준으로 정해요.
       </p>
 
       <div className="tt" style={{ ['--cols' as string]: terms.length }}>

@@ -23,7 +23,7 @@ export function AcademyRosterPicker({ onSelected, disabled = false }: { onSelect
       } else onSelected?.(s)
       setOpen(false)
     } catch {
-      setError('학생 설계를 전환하지 못했어요. 다시 골라 주세요.')
+      setError('학생 설계를 전환하지 못했어요. 다시 고르세요.')
     } finally { setBusy(false) }
   }
   return (
@@ -43,7 +43,7 @@ export function AcademyRosterPicker({ onSelected, disabled = false }: { onSelect
             </button></li>)}
           </ul>
           {!rows.length && <p className="hint">찾는 학생이 없어요.</p>}
-          {rows.length === 100 && <p className="fine">최대 100명까지 보여요. 이름을 더 적어 주세요.</p>}
+          {rows.length === 100 && <p className="fine">최대 100명이에요. 이름을 더 적어 보세요.</p>}
         </div>
       )}
       {error && <p className="form-error" role="alert">{error}</p>}

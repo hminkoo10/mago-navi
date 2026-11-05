@@ -10,7 +10,7 @@ export function KeyNeeded({ what, other }: { what: string; other?: string }) {
   const ai = user?.ai
   if (user?.magoRole === 'student') return (
     <div className="callout key-needed" role="status">
-      <p>{ai?.message || (user.aiMode === 'teacher' ? '담당 선생님이 AI 키를 등록하지 않았어요' : '지금은 학원 AI를 쓸 수 없어요. 선생님께 알려 주세요.')}{other && ` ${other}`}</p>
+      <p>{ai?.message || (user.aiMode === 'teacher' ? '담당 선생님이 키를 등록하지 않았어요' : '지금은 학원 AI를 쓸 수 없어요. 선생님께 알리세요.')}{other && ` ${other}`}</p>
     </div>
   )
   return (
@@ -18,16 +18,15 @@ export function KeyNeeded({ what, other }: { what: string; other?: string }) {
       <p>
         {ai?.source === 'own' ? (
           <>
-            <strong>{what}</strong>는 내 Google AI Studio(Gemini) API 키로 하기로 골라 두었어요. 키를 내 계정에 등록하거나 내 계정에서 학원 AI로 바꿔 주세요.
+            <strong>{what}</strong>는 내 Gemini API 키로 해요. 계정에 키를 등록하거나 학원 AI로 바꾸세요.
           </>
         ) : ai ? (
           <>
-            <strong>{what}</strong>는 학원 AI나 내 Google AI Studio(Gemini) API 키로 해요. 지금은 쓸 수 있는 학원 AI가 없어요. 원장님께 학원 AI를 정해
-            달라고 하거나, 키를 내 계정에 등록하면 바로 쓸 수 있어요.
+            <strong>{what}</strong>는 학원 AI나 내 Gemini API 키로 해요. 지금 학원 AI를 쓸 수 없어요. 원장님께 정해 달라고 하거나 키를 등록하세요.
           </>
         ) : (
           <>
-            <strong>{what}</strong>는 내 Google AI Studio(Gemini) API 키로 해요. 키를 내 계정에 등록하면 바로 쓸 수 있어요.
+            <strong>{what}</strong>는 내 Gemini API 키로 해요. 키를 계정에 등록하세요.
           </>
         )}
         {other && ` ${other}`}

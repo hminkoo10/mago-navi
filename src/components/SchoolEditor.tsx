@@ -101,11 +101,11 @@ export function SchoolEditor({ initial, preset, aiEnabled, onClose, onSave }: Pr
       const { schools } = await searchSchools(query)
       if (my !== searchSeq.current) return
       setHits(schools)
-      setSearchMsg(schools.length ? '' : '찾는 학교가 없어요. 아래에 직접 적어 주세요.')
+      setSearchMsg(schools.length ? '' : '찾는 학교가 없어요. 아래에 직접 적으세요.')
     } catch (e) {
       if (my !== searchSeq.current) return
       setHits(null)
-      setSearchMsg(e instanceof ApiError ? e.message : '학교 검색을 쓸 수 없어요. 직접 적어 주세요.')
+      setSearchMsg(e instanceof ApiError ? e.message : '학교 검색을 쓸 수 없어요. 직접 적으세요.')
     }
   }
 
@@ -137,8 +137,8 @@ export function SchoolEditor({ initial, preset, aiEnabled, onClose, onSave }: Pr
       setTerm(first)
       const notes = [
         result.unknown.length
-          ? `목록에 없는 과목명 ${result.unknown.length}개는 표와 비교해서 고쳐 주세요.`
-          : '원래 표와 다른 곳이 없는지 학기별로 확인해 주세요.',
+          ? `목록에 없는 과목명 ${result.unknown.length}개는 표와 비교해서 고치세요.`
+          : '원래 표와 다른 곳이 없는지 학기별로 확인하세요.',
         truncated ? 'PDF는 앞 4쪽만 읽었어요.' : '',
       ]
       setImp({ state: 'done', message: `불러왔어요. ${notes.filter(Boolean).join(' ')}` })
@@ -196,7 +196,7 @@ export function SchoolEditor({ initial, preset, aiEnabled, onClose, onSave }: Pr
       wide
       footer={
         <>
-          <span className="foot-note">{!name.trim() ? '학교 이름을 적어 주세요.' : errors.length ? `고칠 곳 ${errors.length}개` : ''}</span>
+          <span className="foot-note">{!name.trim() ? '학교 이름을 적으세요.' : errors.length ? `고칠 곳 ${errors.length}개` : ''}</span>
           <button type="button" className="btn" onClick={cancel}>
             취소
           </button>
@@ -274,7 +274,7 @@ export function SchoolEditor({ initial, preset, aiEnabled, onClose, onSave }: Pr
             </div>
             {safeHref(homepage) && (
               <p className="hint">
-                편제표는 보통 학교 홈페이지의 교육과정 게시판에 있어요.{' '}
+                편제표는 학교 홈페이지의 교육과정 게시판에서 찾아요.{' '}
                 <a href={safeHref(homepage)} target="_blank" rel="noreferrer noopener">
                   홈페이지 열기
                 </a>
@@ -371,11 +371,11 @@ export function SchoolEditor({ initial, preset, aiEnabled, onClose, onSave }: Pr
                       </button>
                     ))}
                   </div>
-                  <p className="fine">고르면 그 표만 다시 읽어요. 목록에 없으면 위 학과·과정 칸에 적고 다시 읽어 주세요.</p>
+                  <p className="fine">목록에 없으면 학과·과정 칸에 적고 다시 읽어요.</p>
                 </div>
               )}
               <p className="fine">
-                올린 파일과 텍스트는 편제표를 읽을 때만 외부 AI 서비스로 보내고 저장하지 않아요.
+                올린 파일과 텍스트는 읽을 때만 외부 서비스로 보내고 저장하지 않아요.
                 {training &&
                   ' 지금 쓰는 Google Gemini 무료 등급은 보낸 내용을 Google이 개선에 쓰고 검토자가 읽을 수 있으니, 개인정보가 담긴 파일은 올리지 마세요.'}
               </p>
@@ -523,7 +523,7 @@ export function SchoolEditor({ initial, preset, aiEnabled, onClose, onSave }: Pr
             </div>
 
             <h4 className="ed-h4">학기를 잇는 세트 선택</h4>
-            <p className="fine">예: 2학년 1학기 일본어 → 2학기 일본어 회화처럼 두 학기를 묶어 고르는 경우</p>
+              <p className="fine">두 학기에 걸친 과목을 묶을 때 써요.</p>
             <div className="rows">
               {draft.tracks.map((tr) => (
                 <div key={tr.id} className="grp">
@@ -700,7 +700,7 @@ export function SchoolEditor({ initial, preset, aiEnabled, onClose, onSave }: Pr
                   <li key={u}>{u}</li>
                 ))}
               </ul>
-              <p className="fine">권장과목과 맞춰 보려면 정확한 과목명이 필요해요. 학교 전용 과목이면 그대로 둬도 됩니다.</p>
+              <p className="fine">권장과목과 맞추려면 과목명을 정확히 적으세요.</p>
             </div>
           )}
         </aside>

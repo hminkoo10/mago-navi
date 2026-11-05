@@ -38,7 +38,7 @@ export function UpdatesPage() {
         <p className="eyebrow">2028 대입</p>
         <h1 className="page-title">대입 정보 소식</h1>
         <p className="page-sub">
-          대학이 전형을 바꾸거나 자료를 고치면 여기에 남기고, 열려 있는 화면에도 바로 반영해요. 서버가 대학 원문 파일을 주기적으로 확인해요.
+          대학 원문이 바뀌면 확인해 반영한 기록이에요.
         </p>
       </header>
 
@@ -109,7 +109,7 @@ export function UpdatesPage() {
 
       <section className="panel-card">
         <h2 className="card-title">대학별 원문</h2>
-        <p className="card-sub">전형 찾기에 쓴 대학별 「2028학년도 대학입학전형시행계획」이에요. 최종 내용은 대학이 내는 모집요강을 확인하세요.</p>
+        <p className="card-sub">전형 찾기에 쓴 대학별 시행계획이에요. 최종 내용은 모집요강을 확인하세요.</p>
         <ul className="src-docs">
           {[...data.plans]
             .sort((a, b) => name(a.univ).localeCompare(name(b.univ), 'ko'))

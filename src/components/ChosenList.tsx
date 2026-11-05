@@ -90,8 +90,7 @@ export function ChosenList({
         )}
       </h3>
       <p className="auto-picks-help">
-        고른 학과의 권장과목을 채우려고 선택 칸마다 자동으로 고른 과목이에요. 학교 수강 신청 때 이대로 고르면 돼요. 다른 과목으로 바꾸려면 과목 이름을 눌러
-        빼거나, 칸을 눌러 다른 과목을 꼭 듣기로 하세요.
+        고른 학과의 권장과목을 채운 과목이에요. 바꾸려면 과목 이름이나 칸을 누르세요.
       </p>
       <div className="table-wrap">
         <table className="table auto-picks-table">

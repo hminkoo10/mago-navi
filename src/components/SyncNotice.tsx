@@ -10,7 +10,7 @@ export function SyncNotice() {
   if (sync === 'rejected')
     return (
       <div className="callout is-warn no-print" role="status">
-        <p>계정에 저장하지 못하고 있어요. {syncMessage || '저장할 내용이 맞지 않아요.'} 고친 내용은 이 기기에만 있어요.</p>
+        <p>계정에 저장하지 못하고 있어요. {syncMessage || '저장할 내용이 맞지 않아요.'} 이 기기에 남아 있어요.</p>
       </div>
     )
   if ((sync !== 'error' && sync !== 'load-error') || syncFailures < 2) return null
@@ -18,8 +18,8 @@ export function SyncNotice() {
     <div className="callout is-warn no-print" role="status">
       <p>
         {sync === 'load-error'
-          ? '계정에 저장한 설계를 불러오지 못하고 있어요. 지금은 이 기기의 설계를 보여 주고, 연결되면 합쳐서 저장해요.'
-          : '계정에 저장하지 못하고 있어요. 고친 내용은 이 기기에 남아 있고, 연결되면 다시 저장해요.'}
+          ? '계정 설계를 불러오지 못했어요. 이 기기의 설계를 보여 주고, 연결되면 합쳐요.'
+          : '계정에 저장하지 못했어요. 고친 내용은 연결되면 다시 저장해요.'}
       </p>
       <div className="row-btns">
         <button type="button" className="btn btn-sm" onClick={retrySync}>

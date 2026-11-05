@@ -49,7 +49,7 @@ export function ConditionsView({ plan, allUnits, selectedIds, skipped = [], focu
         <label className="switch">
           <input type="checkbox" checked={onlyMissing} onChange={(e) => setOnlyMissing(e.target.checked)} />다 못 채운 학과만
         </label>
-        <span className="muted">학과 이름 옆 빼기를 누르면 계산에서 빠져요.</span>
+        <span className="muted">빼기를 누르면 계산에서 빠져요.</span>
       </div>
 
       {shown.length === 0 && <p className="empty-line">고른 학과의 권장과목을 모두 들을 수 있어요.</p>}
@@ -165,8 +165,7 @@ export function ConditionsView({ plan, allUnits, selectedIds, skipped = [], focu
             {focusLabel} 기준으로 계산에서 뺀 학과 {skipped.length}
           </h3>
           <p className="muted">
-            이 학과들은 {focusLabel}에서 학생부를 서류로 평가하지 않아 어떤 과목을 들었는지 보지 않아요. 목표 전형을 학생부종합으로 바꾸거나 학기별 추천의 목표
-            전형 칸에서 "뺀 학과의 권장과목도 함께 채우기"를 켜면 다시 들어가요.
+            이 학과들은 {focusLabel}에서 과목 이수를 보지 않아요. 학생부종합으로 바꾸면 다시 들어가요.
           </p>
           <ul>
             {skipped.map((r) => (

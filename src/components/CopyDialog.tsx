@@ -14,7 +14,7 @@ export function CopyDialog({ text, onClose }: { text: string; onClose: () => voi
         </button>
       }
     >
-      <p className="hint">브라우저가 자동 복사를 막았어요. 아래 내용을 모두 골라 복사하세요.</p>
+      <p className="hint">아래 내용을 복사하세요.</p>
       <textarea className="ta" readOnly rows={12} value={text} data-autofocus onFocus={(e) => e.currentTarget.select()} aria-label="복사할 내용" />
     </Dialog>
   )

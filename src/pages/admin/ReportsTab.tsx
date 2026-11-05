@@ -50,7 +50,7 @@ export function ReportsTab() {
           ))}
         </div>
       </div>
-      <p className="hint">학생들이 출처 탭에서 '틀린 곳 알리기'로 보낸 신고예요. 편제표를 원문과 비교해 고치거나 숨긴 뒤 처리해 주세요.</p>
+      <p className="hint">학생이 출처 탭에서 보낸 신고예요. 원문과 비교해 처리하세요.</p>
       {list.error && <p className="form-error">{list.error}</p>}
       <ul className={`report-list${list.loading ? ' is-loading' : ''}`}>
         {list.data?.items.map((r) => (

@@ -180,14 +180,14 @@ export function eligibility(t: AdmissionTrack, ctx: Context): Eligibility {
   if (t.grads === '졸업자' && ctx.status === '재학생') no('고등학교를 졸업한 사람만 지원할 수 있어요')
 
   if (t.schools.only.length) {
-    if (!ctx.schoolType) check(`${joinTypes(t.schools.only)} 학생만 지원할 수 있어요 (내 조건에서 고교 유형을 골라 주세요)`)
+    if (!ctx.schoolType) check(`${joinTypes(t.schools.only)} 학생만 지원할 수 있어요 (내 조건에서 고교 유형을 고르세요)`)
     else if (!t.schools.only.includes(ctx.schoolType)) no(`${joinTypes(t.schools.only)} 학생만 지원할 수 있어요`)
   }
   if (ctx.schoolType && t.schools.exclude.includes(ctx.schoolType)) no(`${ctx.schoolType} 학생은 지원할 수 없어요`)
 
   if (t.regions.length) {
     const where = t.regions.join('·')
-    if (!ctx.region) check(`${where} 지역 고교 출신만 지원할 수 있어요 (내 조건에서 지역을 골라 주세요)`)
+    if (!ctx.region) check(`${where} 지역 고교 출신만 지원할 수 있어요 (내 조건에서 지역을 고르세요)`)
     else if (!t.regions.includes(ctx.region)) no(`${where} 지역 고교 출신만 지원할 수 있어요`)
     else reasons.push(`${ctx.region} 지역 고교라 지원할 수 있어요`)
   }
@@ -199,8 +199,8 @@ export function eligibility(t: AdmissionTrack, ctx: Context): Eligibility {
     const talent = needs.filter((s) => s === 'athlete' || s === 'artist')
     if (mine.length) check(`${mine.map((s) => SPECIAL_LABEL[s]).join(', ')} 자격을 서류로 확인해요`)
     // '그 밖의 대상'은 화면에서 고를 수 없어 판단하지 않고 확인을 부탁한다
-    else if (needs.includes('other')) check(`지원 대상이 정해진 전형이에요. 자격을 확인해 주세요: ${t.who}`)
-    else if (talent.length === needs.length) no(`${talent.map((s) => SPECIAL_LABEL[s]).join(', ')} 대상 전형이에요. 해당하면 내 조건에서 골라 주세요`)
+    else if (needs.includes('other')) check(`지원 대상이 정해진 전형이에요. 자격을 확인하세요: ${t.who}`)
+    else if (talent.length === needs.length) no(`${talent.map((s) => SPECIAL_LABEL[s]).join(', ')} 대상 전형이에요. 해당하면 내 조건에서 고르세요`)
     else no(`${needs.map((s) => SPECIAL_LABEL[s]).join(', ')} 대상 전형이에요`)
   }
   if (t.special.includes('military')) check('군 장학생 선발 조건(신체검사·신원조사 등)을 함께 봐요')

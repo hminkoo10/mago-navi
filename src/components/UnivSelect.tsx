@@ -128,7 +128,7 @@ export function UnivSelect() {
           </button>
           {showSilent && (
             <>
-              <p className="hint">2028학년도 학과별 권장과목을 밝히지 않았거나 공식 자료를 찾지 못한 대학이에요. 담아도 과목 추천은 바뀌지 않아요.</p>
+              <p className="hint">권장과목 자료가 없어요. 담아도 추천은 바뀌지 않아요.</p>
               <ul className="pick-list">{silent.map(row)}</ul>
             </>
           )}

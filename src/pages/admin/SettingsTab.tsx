@@ -90,7 +90,7 @@ export function SettingsTab() {
   const groups = [...new Set(fields.map((f) => f.group))]
 
   const save = async () => {
-    if (invalid) return setError(`${invalid.label}은(는) ${invalid.min}~${invalid.max} 사이로 적어 주세요.`)
+    if (invalid) return setError(`${invalid.label}은(는) ${invalid.min}~${invalid.max} 사이로 적으세요.`)
     setBusy(true)
     setError('')
     try {

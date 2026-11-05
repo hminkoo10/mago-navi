@@ -79,12 +79,12 @@ export function AdmissionsTab({ univIds }: { univIds: string[] }) {
             {g.plan ? (
               <TrackList rated={g.visible} plan={g.plan} />
             ) : (
-              <p className="hint">이 대학의 전형 자료는 아직 넣지 못했어요. 대학 입학처의 2028학년도 입학전형시행계획을 확인해 주세요.</p>
+              <p className="hint">이 대학의 전형 자료가 없어요. 대학 입학처 원문을 확인하세요.</p>
             )}
           </section>
         ))}
       </div>
-      <p className="fine">판단은 시행계획에 적힌 자격만 본 것이에요. 학교장 추천 인원, 자격 서류, 최종 모집요강은 꼭 확인하세요.</p>
+      <p className="fine">학교장 추천·자격 서류·최종 모집요강은 꼭 확인하세요.</p>
 
       <Dialog
         open={editing}

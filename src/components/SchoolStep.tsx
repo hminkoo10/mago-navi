@@ -121,14 +121,14 @@ export function SchoolStep({ onEdit, onLoaded }: Props) {
         .then((r) => {
           if (my !== searchSeq.current) return
           setHits(r.schools)
-          setSearchMsg(r.schools.length ? '' : '찾는 학교가 없어요. 이름을 줄여서 적어 보세요. 예: 반송고')
+          setSearchMsg(r.schools.length ? '' : '찾는 학교가 없어요. 이름을 줄여서 적으세요. 예: 반송고')
           if (rosterSearch) {
             // 나이스는 키가 없으면 최대 5건. 코드 일치가 없으면 잘린 결과에서 이름만으로 단정하지 않는다.
             const matched = matchRosterSchool(rosterSearch.school, r.schools, r.schools.length < 5, rosterSearch)
             if (matched) {
               setHit(matched)
               setRosterMatched(true)
-            } else setSearchMsg('명단의 학교를 하나로 확인하지 못했어요. 학교 이름과 지역을 보고 직접 골라 주세요.')
+            } else setSearchMsg('명단의 학교를 하나로 확인하지 못했어요. 학교 이름과 지역을 보고 직접 고르세요.')
           }
         })
         .catch((e) => {
@@ -270,7 +270,7 @@ export function SchoolStep({ onEdit, onLoaded }: Props) {
     setSearching(false)
     setQ(normalizeSchoolName(s.school))
     setRosterSearch(s.school ? s : null)
-    setRosterHint(!s.school ? '명단에 학교가 없어요. 학교를 직접 골라 주세요.' : c === null ? '이름·학교·학년을 불러왔어요. 학년을 입학년도로 확정할 수 없어 입학년도를 직접 골라 주세요.' : '명단의 학교·학년으로 채웠어요. 학교와 입학년도를 확인해 주세요.')
+    setRosterHint(!s.school ? '명단에 학교가 없어요. 학교를 직접 고르세요.' : c === null ? '이름·학교·학년을 불러왔어요. 학년을 입학년도로 확정할 수 없어 입학년도를 직접 고르세요.' : '명단의 학교·학년으로 채웠어요. 학교와 입학년도를 확인하세요.')
   }
   const nativeStudent = students.roster?.students.find((s) => s.id === students.current?.id)
   const filled = useRef('')
@@ -414,7 +414,7 @@ export function SchoolStep({ onEdit, onLoaded }: Props) {
 
       {!server ? (
         <section className="field-block">
-          <p className="hint">이 주소에서는 학교 찾기를 쓸 수 없어요. 학교 홈페이지에서 편제표 파일을 받아 올려 주세요.</p>
+          <p className="hint">학교 홈페이지에서 편제표 파일을 받아 올리세요.</p>
           <button type="button" className="btn btn-primary" onClick={() => onEdit(null)}>
             편제표 올리기
           </button>
@@ -485,7 +485,7 @@ export function SchoolStep({ onEdit, onLoaded }: Props) {
 
           {rosterMatched && (
             <div className="load-card">
-              <p className="hint">명단의 학교와 일치해요. 편제표를 불러오면 이 학생 설계에 저장해요.</p>
+              <p className="hint">편제표를 불러오면 이 학생 설계에 저장해요.</p>
               <button type="button" className="btn btn-primary" onClick={() => void choose(hit)}>이 학교 편제표 불러오기</button>
             </div>
           )}
@@ -499,7 +499,7 @@ export function SchoolStep({ onEdit, onLoaded }: Props) {
           {options.length > 0 && load.kind === 'idle' && (
             <div className="track-pick">
               <h3 className="field-label">학과·과정</h3>
-              <p className="hint">{shortSchool(hit.name)}는 학과·과정마다 교육과정이 달라요. 다니는(다닐) 곳을 골라 주세요.</p>
+              <p className="hint">{shortSchool(hit.name)}는 학과·과정마다 편제표가 달라요. 고르세요.</p>
               <div className="chips" role="radiogroup" aria-label="학과·과정">
                 {options.map((o) => (
                   <button
@@ -531,12 +531,11 @@ export function SchoolStep({ onEdit, onLoaded }: Props) {
                 customForm
               ) : (
                 <button type="button" className="btn btn-primary" disabled={!track} onClick={() => void start(hit, track)}>
-                  {track ? `${label(track)} 편제표 불러오기` : '학과·과정을 골라 주세요'}
+                  {track ? `${label(track)} 편제표 불러오기` : '학과·과정을 고르세요'}
                 </button>
               )}
               <p className="fine">
-                {info?.source === 'classes' ? '나이스 학급 정보로 찾은 목록이에요.' : '나이스 학과 정보로 찾은 목록이라 지금 없는 학과가 섞여 있을 수 있어요.'}{' '}
-                과학중점반처럼 목록에 없는 과정은 직접 입력하세요.
+                {info?.source === 'classes' ? '나이스 학급 정보 목록이에요.' : '나이스 학과 정보 목록이라 지금 없는 학과가 섞일 수 있어요.'} 목록에 없으면 직접 입력하세요.
               </p>
             </div>
           )}
@@ -545,7 +544,7 @@ export function SchoolStep({ onEdit, onLoaded }: Props) {
             <div className="track-note">
               {customOpen ? (
                 <>
-                  <p className="hint">학과·과정(예: 체육학급, 과학중점반, 자연계열)마다 편제표가 따로 있으면 이름을 적어 주세요. 그 표만 다시 찾아 읽어요.</p>
+                  <p className="hint">학과·과정별 편제표면 이름을 적으세요. 그 표만 찾아요.</p>
                   {customForm}
                 </>
               ) : (
@@ -559,7 +558,7 @@ export function SchoolStep({ onEdit, onLoaded }: Props) {
           {load.kind === 'choose' && (
             <div className="load-card">
               <p className="load-title">이 학교 편제표는 학과·과정별로 나뉘어 있어요</p>
-              <p className="hint">어느 것을 따르나요? 고르면 그 표만 읽어요.</p>
+              <p className="hint">따를 표를 고르세요.</p>
               <div className="chips">
                 {load.variants.map((v) => (
                   <button key={v} type="button" className="chip" onClick={() => void start(hit, v)}>
@@ -593,7 +592,7 @@ export function SchoolStep({ onEdit, onLoaded }: Props) {
                 <span className="spinner" aria-hidden="true" />
                 {phase} <span className="num muted">{elapsed}초</span>
               </p>
-              <p className="hint">처음 불러오는 학교는 30초에서 1분쯤 걸려요. 한 번 불러온 학교는 다음부터 바로 열려요.</p>
+              <p className="hint">처음은 30초~1분 걸려요. 다음부터 바로 열려요.</p>
               <button
                 type="button"
                 className="btn btn-sm"
@@ -621,7 +620,7 @@ export function SchoolStep({ onEdit, onLoaded }: Props) {
               ) : (
                 <p className="hint">빈 학기나 학점이 이상한 곳이 있어요.</p>
               )}
-              <p className="hint">표를 열어 원문과 비교해 고친 뒤 저장해 주세요. 다른 파일로 다시 읽어 볼 수도 있어요.</p>
+              <p className="hint">표를 열어 원문과 비교해 고쳐 저장하세요.</p>
               <div className="row-btns">
                 <button type="button" className="btn btn-primary" onClick={() => onEdit(load.school)}>
                   표 열어서 확인하기
@@ -637,11 +636,11 @@ export function SchoolStep({ onEdit, onLoaded }: Props) {
               <p className="hint">
                 {load.candidates.length
                   ? ai
-                    ? '찾은 파일이에요. 읽을 파일을 골라 주세요.'
+                  ? '찾은 파일이에요. 읽을 파일을 고르세요.'
                     : features.read && needKey
-                      ? '찾은 파일이에요. 자동으로 읽으려면 내 Gemini API 키가 있어야 해요.'
-                      : '찾은 파일이에요. 지금은 자동 읽기를 쓸 수 없어서, 파일을 받아 직접 올려 주세요.'
-                  : '편제표 파일을 찾지 못했어요. 학교 홈페이지에서 편제표 파일을 받아 올려 주세요.'}
+                      ? '찾은 파일이에요. 자동으로 읽으려면 내 Gemini API 키가 필요해요.'
+                      : '자동 읽기를 쓸 수 없어요. 파일을 받아 직접 올려 주세요.'
+                  : '편제표 파일을 찾지 못했어요. 학교 홈페이지에서 받아 올리세요.'}
               </p>
               {features.read && needKey && load.candidates.length > 0 && (
                 <KeyNeeded what="편제표 자동 읽기" other="키 없이도 아래 '편제표 파일 올리기'에서 과목을 직접 입력할 수 있어요." />

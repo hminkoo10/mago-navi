@@ -238,7 +238,7 @@ const IMPORT_FILTERS: { key: ImportRow['status'] | 'all'; label: string }[] = [
 const CHECK_STATUS: Record<CheckRow['status'], { label: string; cls: string }> = {
   waiting: { label: '검수 기다림', cls: '' },
   running: { label: '검수 중', cls: 'is-warn' },
-  done: { label: 'AI 검수함', cls: 'is-ok' },
+  done: { label: '자동 검수함', cls: 'is-ok' },
   failed: { label: '검수 못 함', cls: 'is-warn' },
 }
 
@@ -298,7 +298,7 @@ function ImportCard({ onChanged }: { onChanged: () => void }) {
   const review = async (univ: string) => {
     try {
       await dataAdmin.reviewPlan(univ)
-      notify(`${name(univ)} 자료를 검수 AI가 원문과 대조하고 있어요. 1~3분 걸려요.`)
+      notify(`${name(univ)} 자료를 원문과 대조하고 있어요. 1~3분 걸려요.`)
       reload()
     } catch (e) {
       notify(e instanceof ApiError ? e.message : '검수를 시작하지 못했어요.')
@@ -308,7 +308,7 @@ function ImportCard({ onChanged }: { onChanged: () => void }) {
     setError('')
     try {
       await dataAdmin.runImport(r.univ, withUrl)
-      notify(`${name(r.univ)} 시행계획을 받아 AI로 옮기고 있어요. 1~3분 걸려요.`)
+      notify(`${name(r.univ)} 시행계획을 받아 자동으로 옮기고 있어요. 1~3분 걸려요.`)
       setUrlFor(null)
       setUrl('')
       reload()
@@ -328,20 +328,16 @@ function ImportCard({ onChanged }: { onChanged: () => void }) {
           {enabled ? '멈추기' : '가져오기 시작'}
         </button>
       </div>
-      <p className="card-sub">
-        전형 자료가 없는 대학의 2028학년도 시행계획을 서버가 대교협 파일 저장소와 대학 입학처에서 받아 AI로 옮겨요. 옮긴 전형은 바로 모두에게 보이고 'AI가 옮김'
-        표시가 붙어요. 대학마다 AI를 3~6번 불러서, AI 연결에 Gemini(무료 키)가 있으면 지금 고른 연결과 상관없이 Gemini로 옮겨요. 옮긴 뒤에는 검수 AI(Gemini가
-        아닌 연결, 예: Claude)가 원문과 대조해 틀린 곳을 고치고 'AI 검수' 표시를 붙여요.
-      </p>
+      <p className="card-sub">전형 자료가 없는 대학의 시행계획을 받아 옮겨요. 반영한 자료는 모두에게 보이고 검수 표시가 붙어요.</p>
       <p className="muted small">
         {ai
-          ? `가져오기 AI: ${ai.name} (${state.model && state.model !== ai.model ? `한도 때문에 ${state.model}` : ai.model})`
-          : 'AI가 설정되지 않았어요. AI 연결 탭에서 먼저 연결해 주세요.'}{' '}
+          ? `가져오기: ${ai.name} (${state.model && state.model !== ai.model ? `한도 때문에 ${state.model}` : ai.model})`
+          : '자동 처리가 설정되지 않았어요. 연결 탭에서 연결하세요.'}{' '}
         · 오늘 {state.doneToday}/{state.limit}곳{current ? ` · ${name(current)} 옮기는 중` : ''}
         {state.note ? ` · ${state.note}` : ''}
       </p>
       <p className="muted small">
-        {verify.ai ? `검수 AI: ${verify.ai.name} (${verify.ai.model})` : '검수할 AI 연결이 없어요. Gemini가 아닌 연결(예: Claude)을 넣으면 검수해요.'}
+        {verify.ai ? `검수 연결: ${verify.ai.name} (${verify.ai.model})` : '검수할 연결이 없어요. Gemini가 아닌 연결(예: Claude)을 넣으면 검수해요.'}
         {verify.enabled ? ` · 오늘 ${verify.doneToday}/${verify.limit}곳 · 검수 기다림 ${checkWaiting}곳` : ' · 검수를 꺼 두었어요 (설정)'}
         {checking ? ` · ${name(checking)} 검수 중` : ''}
         {verify.note ? ` · ${verify.note}` : ''}
@@ -418,7 +414,7 @@ function ImportCard({ onChanged }: { onChanged: () => void }) {
                       disabled={!verify.ai || checks.get(r.univ)?.status === 'running'}
                       onClick={() => void review(r.univ)}
                     >
-                      {checks.get(r.univ)?.status === 'done' ? '다시 검수' : 'AI 검수'}
+                      {checks.get(r.univ)?.status === 'done' ? '다시 검수' : '자동 검수'}
                     </button>
                   )}
                   <button type="button" className="btn btn-sm" disabled={!ai || r.status === 'running'} onClick={() => void run(r)}>
@@ -490,7 +486,7 @@ export function DataTab() {
   const checkPlan = async (univ: string) => {
     try {
       await dataAdmin.checkPlan(univ)
-      notify(`${name(univ)} 원문을 받아 AI로 확인하고 있어요. 1~3분 걸려요.`)
+      notify(`${name(univ)} 원문을 받아 자동으로 확인하고 있어요. 1~3분 걸려요.`)
       data.reload()
     } catch (e) {
       notify(e instanceof ApiError ? e.message : '확인을 시작하지 못했어요.')
@@ -523,12 +519,12 @@ export function DataTab() {
           <span className="stat-sub">{admissions.updatedAt ? `최근 ${dateTime(admissions.updatedAt)}` : '아직 없어요'}</span>
         </div>
         <div className={`stat${aiPlans > aiChecked ? ' is-warn' : ''}`}>
-          <span className="stat-label">AI가 옮긴 대학</span>
+          <span className="stat-label">자동으로 옮긴 대학</span>
           <strong className="stat-num num">{aiPlans}</strong>
-          <span className="stat-sub">{aiPlans ? `검수 AI가 확인한 곳 ${aiChecked}` : '확인할 것이 없어요'}</span>
+          <span className="stat-sub">{aiPlans ? `자동 검수한 곳 ${aiChecked}` : '확인할 것이 없어요'}</span>
         </div>
         <div className={`stat${open.length ? ' is-warn' : ''}`}>
-          <span className="stat-label">AI가 찾은 변경</span>
+          <span className="stat-label">자동으로 찾은 변경</span>
           <strong className="stat-num num">{open.length}</strong>
           <span className="stat-sub">{open.length ? '아래에서 반영하거나 버려 주세요' : pending ? `바뀐 원문 ${pending}곳` : '확인할 것이 없어요'}</span>
         </div>
@@ -543,13 +539,13 @@ export function DataTab() {
 
       <section className="panel-card">
         <div className="card-head">
-          <h2 className="card-title">AI가 찾은 변경</h2>
+          <h2 className="card-title">자동으로 찾은 변경</h2>
           {busy > 0 && <span className="muted small">{data.data.checking.map(name).join(', ')} 확인 중</span>}
         </div>
         <p className="card-sub">
           {ai
-            ? '대학 원문이 바뀌면 서버가 새 파일을 받아 지난번과 달라진 쪽만 AI로 읽고, 고칠 곳을 여기에 올려요. 반영하면 모두에게 바로 보이고 대입 정보 소식에 남아요. 설정에서 바로 반영을 켜면 모집인원이 조금 바뀐 정도의 작은 고침은 확인 없이 반영해요.'
-            : '서버에 AI가 설정돼 있지 않아 원문이 바뀌어도 고칠 곳을 찾지 않아요. 원문 감시 알림을 보고 직접 고쳐 주세요.'}
+            ? '대학 원문이 바뀌면 달라진 부분을 올려요. 반영하면 모두에게 보이고 대입 정보 소식에 남아요. 작은 고침은 확인 없이 반영할 수 있어요.'
+            : '자동으로 고칠 곳을 찾지 않아요. 원문 감시 알림을 보고 직접 고치세요.'}
         </p>
         {open.length ? (
           <ul className="proposal-list">
@@ -591,8 +587,7 @@ export function DataTab() {
           </button>
         </div>
         <p className="card-sub">
-          대학별 전형계획 파일과 대교협 자료집을 서버가 6시간마다 확인해요 (WATCH_INTERVAL_HOURS). 바뀌면 여기에 뜨고, AI가 바뀐 곳을 찾아 위 'AI가 찾은 변경'에
-          올려요.
+          대학별 전형계획 파일과 대교협 자료집을 6시간마다 확인해요. 바뀐 곳은 위 제안에 올려요.
         </p>
         <label className="switch">
           <input type="checkbox" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} />
@@ -634,7 +629,7 @@ export function DataTab() {
                       </button>
                     )}
                     {s.custom && (
-                      <button type="button" className="btn btn-sm btn-danger-quiet" onClick={() => void act(() => dataAdmin.removeSource(s.key), '지웠어요.')}>
+                      <button type="button" className="btn btn-sm btn-danger-quiet" onClick={() => { if (confirm(`${s.key} 원문 감시를 지울까요?`)) void act(() => dataAdmin.removeSource(s.key), '지웠어요.') }}>
                         지우기
                       </button>
                     )}
@@ -653,7 +648,7 @@ export function DataTab() {
 
       <section className="panel-card">
         <h2 className="card-title">대학별 전형 자료</h2>
-        <p className="card-sub">고치면 검사를 통과한 뒤 바로 모든 사용자에게 보이고, 대입 정보 소식에 남아요. 되돌리면 배포한 자료로 돌아가요.</p>
+        <p className="card-sub">고치면 검사 후 모두에게 보이고 대입 정보 소식에 남아요. 되돌리면 배포 자료로 돌아가요.</p>
         <div className="table-wrap">
           <table className="table">
             <thead>
@@ -677,7 +672,7 @@ export function DataTab() {
                       {p.ai && (
                         <>
                           {' '}
-                          <span className={`badge ${p.aiCheck ? 'is-ok' : 'is-warn'}`}>{p.aiCheck ? 'AI가 옮기고 AI가 검수함' : 'AI가 옮김'}</span>
+                          <span className={`badge ${p.aiCheck ? 'is-ok' : 'is-warn'}`}>{p.aiCheck ? '자동으로 옮기고 검수함' : '자동으로 옮김'}</span>
                         </>
                       )}
                     </td>
@@ -700,9 +695,9 @@ export function DataTab() {
                         <button
                           type="button"
                           className="btn btn-sm"
-                          onClick={() => void act(() => dataAdmin.reviewPlan(p.univ), '검수 AI가 원문과 대조하고 있어요. 1~3분 걸려요.')}
+                          onClick={() => void act(() => dataAdmin.reviewPlan(p.univ), '원문과 대조하고 있어요. 1~3분 걸려요.')}
                         >
-                          {p.aiCheck ? '다시 검수' : 'AI 검수'}
+                          {p.aiCheck ? '다시 검수' : '자동 검수'}
                         </button>
                       )}
                       {p.ai && (
@@ -710,7 +705,7 @@ export function DataTab() {
                           type="button"
                           className="btn btn-sm"
                           onClick={() => {
-                            if (confirm(`${name(p.univ)} 자료를 사람이 원문과 견줘 확인했나요? 'AI가 옮김' 표시가 사라져요.`))
+                            if (confirm(`${name(p.univ)} 자료를 사람이 원문과 견줘 확인했나요? '자동으로 옮김' 표시가 사라져요.`))
                               void act(() => dataAdmin.verifyPlan(p.univ), '확인 표시를 했어요.')
                           }}
                         >

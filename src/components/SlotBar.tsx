@@ -23,6 +23,7 @@ function summary(d: Design, schools: School[]): string {
 
 /** 목적격 조사를 붙인 말: 슬롯 1 → 슬롯 1을, 컴퓨터 A안 → 컴퓨터 A안을 */
 const eul = (word: string) => `${word}${josa(word, '을', '를')}`
+const screenName = (name: string) => name.replace(/^슬롯(?=\s|$)/, '설계안')
 
 /**
  * 슬롯 줄: 설계를 여러 개 저장해 두고 눌러서 오간다. 고친 내용은 지금 슬롯에 바로 저장된다.
@@ -54,28 +55,28 @@ export function SlotBar() {
     // 다른 슬롯 설계로 부드럽게 전환
     smoothly(() => {
       store.switchSlot(s.id)
-      notify(`${eul(s.name)} 열었어요.`)
+      notify(`${eul(screenName(s.name))} 열었어요.`)
     })
   }
 
   const add = (copy: boolean) => {
     if (menu.current) menu.current.open = false
     const slot = store.addSlot(copy ? prefs.slot : undefined)
-    if (!slot) return notify(`슬롯은 ${MAX_SLOTS}개까지 만들 수 있어요.`)
-    notify(copy ? `지금 설계를 복사해 ${eul(slot.name)} 열었어요.` : `빈 ${eul(slot.name)} 열었어요. 학교는 그대로예요.`)
+    if (!slot) return notify(`설계안은 ${MAX_SLOTS}개까지 만들 수 있어요.`)
+    notify(copy ? `지금 설계를 복사해 ${eul(screenName(slot.name))} 열었어요.` : `빈 ${eul(screenName(slot.name))} 열었어요. 학교는 그대로예요.`)
   }
 
   return (
     <div className="slot-bar no-print">
       <span className="slot-label" id="slot-bar-label">
-        슬롯
+        설계안
       </span>
       <div className="slot-chips" role="group" aria-labelledby="slot-bar-label">
         {slots.map((s) => {
           const on = s.id === prefs.slot
           return (
             <button key={s.id} type="button" className={`slot-chip${on ? ' is-on' : ''}`} aria-pressed={on} title={summary(s, schools)} onClick={() => open(s)}>
-              {s.name}
+              {screenName(s.name)}
             </button>
           )
         })}
@@ -84,11 +85,11 @@ export function SlotBar() {
         {slots.length < MAX_SLOTS && (
           <details className="slot-add" ref={menu}>
             <summary className="btn btn-sm">
-              <IconPlus /> 새 슬롯
+              <IconPlus /> 새 설계안
             </summary>
             <div className="slot-menu">
               <button type="button" onClick={() => add(false)}>
-                <strong>빈 슬롯</strong>
+                <strong>빈 설계안</strong>
                 <small>학교만 두고 분야·대학을 새로 골라요</small>
               </button>
               <button type="button" onClick={() => add(true)}>
@@ -128,7 +129,7 @@ function SlotsDialog({ onClose }: { onClose: () => void }) {
   return (
     <Dialog
       open
-      title="슬롯 관리"
+      title="설계안 관리"
       mid
       onClose={onClose}
       footer={
@@ -139,8 +140,7 @@ function SlotsDialog({ onClose }: { onClose: () => void }) {
     >
       <div className="plans-box">
         <p className="hint">
-          슬롯마다 학교·분야·대학·학과·꼭 듣기/빼기·목표 전형을 따로 저장해요. 고친 내용은 지금 슬롯에 바로 저장되고, 내 조건과 원서 후보는 모든 슬롯이 같이
-          써요. 슬롯은 {MAX_SLOTS}개까지 만들 수 있어요{user ? ' (계정에도 저장)' : ''}.
+          설계안마다 학교·분야·대학·학과·꼭 듣기/빼기·목표 전형을 따로 저장해요. 최대 {MAX_SLOTS}개예요{user ? ' (계정에도 저장)' : ''}.
         </p>
         <ul className="plans-list">
           {slots.map((s) => {
@@ -149,7 +149,7 @@ function SlotsDialog({ onClose }: { onClose: () => void }) {
               <li key={s.id} className={on ? 'is-on' : ''}>
                 {renaming === s.id ? (
                   <form className="slot-rename" onSubmit={(e) => rename(e, s)}>
-                    <input ref={input} className="input" value={name} onChange={(e) => setName(e.target.value)} maxLength={30} aria-label="슬롯 이름" />
+                    <input ref={input} className="input" value={name} onChange={(e) => setName(e.target.value)} maxLength={30} aria-label="설계안 이름" />
                     <button type="submit" className="btn btn-sm btn-primary" disabled={!name.trim()}>
                       저장
                     </button>
@@ -161,8 +161,8 @@ function SlotsDialog({ onClose }: { onClose: () => void }) {
                   <>
                     <div className="plans-main">
                       <strong>
-                        {s.name}
-                        {on && <span className="pill">지금 슬롯</span>}
+                        {screenName(s.name)}
+                        {on && <span className="pill">지금 설계안</span>}
                       </strong>
                       <span className="muted small">
                         {summary(s, schools)}
@@ -177,7 +177,7 @@ function SlotsDialog({ onClose }: { onClose: () => void }) {
                           className="btn btn-sm btn-primary"
                           onClick={() => {
                             store.switchSlot(s.id)
-                            notify(`${eul(s.name)} 열었어요.`)
+                            notify(`${eul(screenName(s.name))} 열었어요.`)
                             onClose()
                           }}
                         >
@@ -200,7 +200,7 @@ function SlotsDialog({ onClose }: { onClose: () => void }) {
                         disabled={slots.length >= MAX_SLOTS}
                         onClick={() => {
                           const copy = store.addSlot(s.id)
-                          if (copy) notify(`${eul(copy.name)} 만들어 열었어요.`)
+                          if (copy) notify(`${eul(screenName(copy.name))} 만들어 열었어요.`)
                         }}
                       >
                         복제
@@ -209,9 +209,9 @@ function SlotsDialog({ onClose }: { onClose: () => void }) {
                         type="button"
                         className="btn btn-sm btn-danger-quiet"
                         disabled={slots.length <= 1}
-                        title={slots.length <= 1 ? '하나 남은 슬롯은 지울 수 없어요. 비우려면 초기화를 쓰세요.' : undefined}
+                        title={slots.length <= 1 ? '하나 남은 설계안은 지울 수 없어요. 비우려면 초기화를 쓰세요.' : undefined}
                         onClick={() => {
-                          if (confirm(`${eul(s.name)} 지울까요?${on ? ' 지금 보는 슬롯이라 옆 슬롯을 열어요.' : ''}`)) store.deleteSlot(s.id)
+                          if (confirm(`${eul(screenName(s.name))} 지울까요?${on ? ' 지금 보는 설계안이라 옆 설계안을 열어요.' : ''}`)) store.deleteSlot(s.id)
                         }}
                       >
                         지우기
